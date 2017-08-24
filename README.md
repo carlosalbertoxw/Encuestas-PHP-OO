@@ -1,4 +1,4 @@
-# PHP-OO-Template
+# PHPOOTemplate
 Plantilla PHP OO para desarrollar aplicaciones web
 
 Antes de ejecutar el código por favor de hacer lo siguiente:

@@ -12,8 +12,16 @@ class Index {
 
     public function __construct() {
         $this->load = Load::get_instance();
-        $this->load->router('page');
-        
+        $method = $_SERVER['REQUEST_METHOD'];
+        if ($method == 'POST' and filter_input(INPUT_POST, 'ajax') !== NULL) {
+            $this->load->router('ajax');
+        } else
+        if ($method == 'POST') {
+            $this->load->router('form');
+        } else
+        if ($method == 'GET') {
+            $this->load->router('page');
+        }
     }
 
 }

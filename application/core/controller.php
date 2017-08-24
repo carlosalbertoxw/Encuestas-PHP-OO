@@ -19,13 +19,12 @@ abstract class Controller {
 
     public function session_validation() {
         $c = get_session_cookie();
-        if ($c !== FALSE and val_input($c['key'], VI_NUMERIC, 10, FALSE) and val_input($c['email'], VI_EMAIL, 50, FALSE) and val_input($c['password'], VI_STRING, 500, FALSE)) {
+        if ($c !== FALSE and val_input($c['u_key'], VI_NUMERIC, 10, FALSE) and val_input($c['u_email'], VI_EMAIL, 50, FALSE) and val_input($c['u_password'], VI_STRING, 500, FALSE)) {
             $model = new Model();
-            $r = $model->get_user_by_key($c['key']);
-            unset($r['password_key']);
+            $r = $model->get_user_by_key($c['u_key']);
             $r['remember'] = $c['remember'];
-            if ($r['email'] == $c['email'] and $r['password'] == $c['password']) {
-                return $r;
+            if ($r['u_email'] == $c['u_email'] and $r['u_password'] == $c['u_password']) {
+                return $c;
             }
         }
         remove_session_cookie();

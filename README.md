@@ -1,5 +1,5 @@
-# PHPOOTemplate
-Plantilla PHP OO para desarrollar aplicaciones web
+# Encuestas
+Aplicación PHP OO
 
 Antes de ejecutar el código por favor de hacer lo siguiente:
 

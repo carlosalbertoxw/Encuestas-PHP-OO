@@ -24,7 +24,7 @@ class Connection {
 
     public function open_connection() {
         if (!$this->conn) {
-            $this->conn = new mysqli('localhost', 'root', '1029384756', 'PHPOOTemplate');
+            $this->conn = new mysqli('localhost', 'root', '1029384756', 'application');
             if ($this->conn->connect_errno == 0) {
                 $this->conn->set_charset('UTF8');
                 //write_log('----conexión abierta----', 'info');

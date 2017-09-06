@@ -1,3 +1,22 @@
+function poll(form) {
+    if (form.title.value.trim().length === 0) {
+        alert('El título es obligatorio');
+        form.title.focus();
+        return false;
+    } else
+    if (form.position.value.trim().length === 0) {
+        alert('La posición es obligatoria');
+        form.position.focus();
+        return false;
+    } else
+    if (!val_numeric(form.position)) {
+        alert('La posición solo acepta valores númericos enteros');
+        form.position.focus();
+        return false;
+    } else {
+        return true;
+    }
+}
 
 function delete_account(form) {
     if (form.password.value.trim().length === 0) {
@@ -84,12 +103,7 @@ function change_email(form) {
     }
 }
 
-function edit_profile(form) {
-    if (form.name.value.trim().length === 0) {
-        alert('El nombre es obligatorio');
-        form.name.focus();
-        return false;
-    } else
+function change_user(form) {
     if (form.user.value.trim().length === 0) {
         alert('El usuario es obligatorio');
         form.user.focus();
@@ -98,6 +112,26 @@ function edit_profile(form) {
     if (!val_uri(form.user)) {
         alert('Solo se aceptan los caracteres 0-9 A-Z a-z - en el usuario');
         form.user.focus();
+        return false;
+    } else
+    if (form.password.value.trim().length === 0) {
+        alert('La contraseña es obligatoria');
+        form.password.focus();
+        return false;
+    } else
+    if (form.password.value.trim().length < 6) {
+        alert('La contraseña no puede ser menor a seis caracteres');
+        form.password.focus();
+        return false;
+    } else {
+        return true;
+    }
+}
+
+function edit_profile(form) {
+    if (form.name.value.trim().length === 0) {
+        alert('El nombre es obligatorio');
+        form.name.focus();
         return false;
     } else {
         return true;

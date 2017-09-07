@@ -1,26 +1,10 @@
 <!DOCTYPE html>
 <html lang="es">
     <head>
-        <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title><?= $a['title'] . ' - ' . WEB_SITE_NAME ?></title>
-        <link href="<?php print WEB_PATH ?>application/library/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-        <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
-        <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
-        <!--[if lt IE 9]>
-          <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
-          <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-        <![endif]-->
+        <?php include_once 'application/template/public/head.php'; ?>
     </head>
     <body>
-        <nav class="navbar navbar-default navbar-static-top">
-            <div class="container">
-                <div class="navbar-header">
-                    <a class="navbar-brand" href="<?php print WEB_PATH ?>"><?php print WEB_SITE_NAME ?></a>
-                </div>
-            </div>
-        </nav>
+        <?php include_once 'application/template/public/nav.php'; ?>
         <div class="container">
             <div>
                 <?php print $a['msg'] ?>
@@ -81,8 +65,6 @@
                 </div>
             </div>
         </div>
-        <script src="<?php print WEB_PATH ?>application/library/js/jquery.min.js"></script>
-        <script src="<?php print WEB_PATH ?>application/library/bootstrap/js/bootstrap.min.js"></script>
-        <script src="<?php print WEB_PATH ?>application/library/js/public/validations.js"></script>
+        <?php include_once 'application/template/public/scripts.php'; ?>
     </body>
 </html>

@@ -14,7 +14,7 @@
                         <div class="form-group">
                             <label class="col-sm-4 control-label" for="user">Usuario</label>
                             <div class="col-sm-8">
-                                <input class="form-control" value="<?php print $a['u_p_user'] ?>" type="text" name="user" id="user" maxlength="50">
+                                <input class="form-control" value="<?php print $a['u_p_user'] ?>" type="text" name="user" id="user" maxlength="25">
                             </div>
                         </div>
                         <div class="form-group">

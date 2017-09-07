@@ -1,3 +1,3 @@
-<script src="<?php print WEB_PATH ?>application/library/js/jquery.min.js"></script>
+<script src="<?php print WEB_PATH ?>application/library/jquery.min.js"></script>
 <script src="<?php print WEB_PATH ?>application/library/bootstrap/js/bootstrap.min.js"></script>
-<script src="<?php print WEB_PATH ?>application/library/js/public/validations.js"></script>
+<script src="<?php print WEB_PATH ?>application/library/public/js/validations.js"></script>

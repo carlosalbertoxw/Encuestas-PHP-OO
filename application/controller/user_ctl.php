@@ -248,7 +248,7 @@ class User_CTL extends Controller {
         if (val_input_get('one', VI_URI, 25, FALSE)) {
             $user = get('one');
             $r = $this->user_mdl->u_m_get_profile($user);
-            if (count($r) == 6) {
+            if ($r != null and count($r) == 6) {
                 $poll_mdl = $this->load->model('poll');
                 $a = $this->session;
                 $a['title'] = $r['u_p_name'];

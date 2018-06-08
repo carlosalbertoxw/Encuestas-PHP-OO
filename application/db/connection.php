@@ -9,10 +9,9 @@ function write_log($cadena, $tipo) {
 class Connection {
 
     private static $instance = NULL;
-    private $conn = FALSE;
 
     private function __construct() {
-        $this->open_connection();
+        
     }
 
     public static function get_instance() {
@@ -23,72 +22,54 @@ class Connection {
     }
 
     public function open_connection() {
-        if (!$this->conn) {
-            $this->conn = new mysqli('localhost', 'root', '1029384756', 'application');
-            if ($this->conn->connect_errno == 0) {
-                $this->conn->set_charset('UTF8');
-                //write_log('----conexión abierta----', 'info');
-            } else {
-                write_log($this->conn->connect_errno . ' - Error al abrir la conexión a la BD - ' . $this->conn->connect_error, 'Error');
-            }
+        $conn = new mysqli('localhost', 'root', 'qwerty', 'application');
+        if ($conn->connect_errno == 0) {
+            $conn->set_charset('UTF8');
+            //write_log('----conexión abierta----', 'info');
+            return $conn;
+        } else {
+            write_log($conn->connect_errno . ' - Error al abrir la conexión a la BD - ' . $conn->connect_error, 'Error');
         }
     }
 
-    public function close_connection() {
-        if ($this->conn !== FALSE) {
-            $this->conn->close();
-            $this->conn = FALSE;
+    public function close_connection($conn) {
+        if ($conn !== FALSE) {
+            $conn->close();
+            $conn = FALSE;
             //write_log('----conexión cerrada----', 'info');
         }
     }
 
-    public function autocommit($mode) {
-        $this->conn->autocommit($mode);
-    }
-
-    public function rollback() {
-        $this->conn->rollback();
-    }
-
-    public function commit() {
-        $this->conn->commit();
-    }
-
-    public function escape_var($var) {
-        $string = $this->conn->escape_string($var);
-        return $string;
-    }
-
-    public function execute_query($query) {
-        $this->conn->query($query);
-        $result = $this->conn->errno;
+    public function execute_query($conn, $query) {
+        $conn->query($query);
+        $result = $conn->errno;
         //write_log($query, 'info');
-        if ($this->conn->errno != 0) {
-            write_log($this->conn->errno . ' - Error al ejecutar la query - ' . $this->conn->error . ' Query ' . $query, 'Error');
+        if ($conn->errno != 0) {
+            write_log($conn->errno . ' - Error al ejecutar la query - ' . $conn->error . ' Query ' . $query, 'Error');
         }
         return $result;
     }
 
-    public function get_result($query) {
+    public function get_result($conn, $query) {
         $row = NULL;
-        $result = $this->conn->query($query);
+        $result = $conn->query($query);
         //write_log($query, 'info');
-        if ($this->conn->errno != 0) {
-            $row = $this->conn->errno;
-            write_log($this->conn->errno . ' - Error al ejecutar la query - ' . $this->conn->error . ' Query ' . $query, 'Error');
+        if ($conn->errno != 0) {
+            $row = $conn->errno;
+            write_log($conn->errno . ' - Error al ejecutar la query - ' . $conn->error . ' Query ' . $query, 'Error');
         } else {
             $row = mysqli_fetch_array($result);
         }
         return $row;
     }
 
-    public function get_results($query) {
+    public function get_results($conn, $query) {
         $rows = NULL;
-        $result = $this->conn->query($query);
+        $result = $conn->query($query);
         //write_log($query, 'info');
-        if ($this->conn->errno != 0) {
-            $rows = $this->conn->errno;
-            write_log($this->conn->errno . ' - Error al ejecutar la query - ' . $this->conn->error . ' Query ' . $query, 'Error');
+        if ($conn->errno != 0) {
+            $rows = $conn->errno;
+            write_log($conn->errno . ' - Error al ejecutar la query - ' . $conn->error . ' Query ' . $query, 'Error');
         } else {
             while ($rows[] = mysqli_fetch_array($result));
             array_pop($rows);

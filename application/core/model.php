@@ -4,14 +4,17 @@ include_once 'application/db/connection.php';
 
 class Model {
 
-    private $conn;
+    private $db;
 
     public function __construct() {
-        $this->conn = Connection::get_instance();
+        $this->db = Connection::get_instance();
     }
 
     public function get_user_by_key($key) {
-        return $this->conn->get_result("SELECT * FROM a_users WHERE u_key=" . $this->conn->escape_var($key));
+        $conn = $this->db->open_connection();
+        $res = $this->db->get_result($conn, "SELECT * FROM a_users WHERE u_key=" . $conn->escape_string($key));
+        $this->db->close_connection($conn);
+        return $res;
     }
 
 }

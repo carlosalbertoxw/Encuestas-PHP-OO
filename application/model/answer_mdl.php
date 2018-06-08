@@ -4,18 +4,24 @@ include_once 'application/db/connection.php';
 
 class Answer_MDL {
 
-    private $conn;
+    private $db;
 
     public function __construct() {
-        $this->conn = Connection::get_instance();
+        $this->db = Connection::get_instance();
     }
 
     public function a_m_add_answer($a) {
-        return $this->conn->execute_query("INSERT INTO a_answers(a_stars,a_comment,a_poll_key,a_user_key) VALUES(" . $this->conn->escape_var($a['stars']) . ",'" . $this->conn->escape_var($a['comment']) . "'," . $this->conn->escape_var($a['poll_key']) . "," . $this->conn->escape_var($a['user_key']) . ")");
+        $conn = $this->db->open_connection();
+        $res = $this->db->execute_query($conn, "INSERT INTO a_answers(a_stars,a_comment,a_poll_key,a_user_key) VALUES(" . $conn->escape_string($a['stars']) . ",'" . $conn->escape_string($a['comment']) . "'," . $conn->escape_string($a['poll_key']) . "," . $conn->escape_string($a['user_key']) . ")");
+        $this->db->close_connection($conn);
+        return $res;
     }
 
     public function a_m_get_answers($key) {
-        return $this->conn->get_results("SELECT * FROM a_answers WHERE a_poll_key=" . $this->conn->escape_var($key));
+        $conn = $this->db->open_connection();
+        $res = $this->db->get_results($conn, "SELECT * FROM a_answers WHERE a_poll_key=" . $conn->escape_string($key));
+        $this->db->close_connection($conn);
+        return $res;
     }
 
 }

@@ -8,8 +8,6 @@ class Answer_CTL extends Controller {
         parent::__construct();
 
         $this->answer_mdl = $this->load->model('answer');
-
-        $this->session = $this->session_validation();
     }
 
     public function a_c_add_answer_form() {

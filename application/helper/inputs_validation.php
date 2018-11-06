@@ -1,6 +1,6 @@
 <?php
 
-define('VI_URI', 'uri');
+define('VI_USERNAME', 'username');
 define('VI_URL', 'url');
 define('VI_NUMERIC', 'numeric');
 define('VI_NUMERIC_DECIMAL', 'numeric_decimal');
@@ -11,48 +11,43 @@ function val_input($val, $type, $length, $empty) {
     return t_l_e($val, $type, $length, $empty);
 }
 
-function val_input_get($val, $type, $length, $empty) {
-    return t_l_e(filter_input(INPUT_GET, $val), $type, $length, $empty);
-}
-
-function val_input_post($val, $type, $length, $empty) {
-    return t_l_e(filter_input(INPUT_POST, $val), $type, $length, $empty);
-}
-
 function t_l_e($val, $type, $length, $empty) {
     if (is_null($val)) {
-        $val = '';
+        return FALSE;
     }
     if ($empty == FALSE and strlen($val) == 0) {
         return FALSE;
     } else
     if ($empty == FALSE and strlen($val) > 0) {
-        return t_l($val, $type, $length);
+        return t($val, $type, $length);
     } else
     if ($empty == TRUE and strlen($val) > 0) {
-        return t_l($val, $type, $length);
-    } else
-    if ($empty == TRUE and strlen($val) == 0) {
-        return TRUE;
+        return t($val, $type, $length);
+    } else {
+        return $empty == TRUE and strlen($val) == 0;
     }
 }
 
-function t_l($val, $type, $length) {
+function t($val, $type, $length) {
     switch ($type) {
-        case 'uri':
-            $flag = val_uri($val);
+        case 'username':
+            $pattern = '/^([0-9a-zA-Z-])*$/';
+            $flag = val($val, $pattern);
             break;
         case 'url':
-            $flag = val_url($val);
+            $flag = filter_var($val, FILTER_VALIDATE_URL) != FALSE ? TRUE : FALSE;
             break;
         case 'numeric':
-            $flag = val_numeric($val);
+            $pattern = '/^([0-9])*$/';
+            $flag = val($val, $pattern);
             break;
         case 'numeric_decimal':
-            $flag = val_numeric_decimal($val);
+            $pattern = '/^[0-9,]*\.?[0-9]*$/';
+            $flag = val($val, $pattern);
             break;
         case 'email':
-            $flag = val_email($val);
+            $pattern = '/^[^@\s]+@[^@\.\s]+(\.[^@\.\s]+)+$/';
+            $flag = val($val, $pattern);
             break;
         case 'string':
             $flag = TRUE;
@@ -61,49 +56,13 @@ function t_l($val, $type, $length) {
             $flag = FALSE;
             break;
     }
-    if ($flag) {
-        if (strlen(utf8_decode($val)) <= $length) {
-            return TRUE;
-        } else {
-            return FALSE;
-        }
-    } else {
-        return FALSE;
-    }
+    return l($val, $flag, $length);
 }
 
-function val_uri($string) {
-    return preg_match('/^([0-9a-zA-Z-])*$/', $string);
+function l($val, $flag, $length) {
+    return $flag and strlen(utf8_decode($val)) <= $length;
 }
 
-function val_url($string) {
-    return filter_var($string, FILTER_VALIDATE_URL);
-}
-
-function val_numeric($string) {
-    $flag = preg_match('/^([0-9])*$/', $string);
-    if ($flag /* and $string <= 2147483647 */) {
-        return TRUE;
-    }
-    return FALSE;
-}
-
-function val_numeric_decimal($string) {
-    return preg_match('/^[0-9, ]*\.?[0-9]*$/', $string);
-}
-
-function val_email($string) {
-    return preg_match('/^[^@\s]+@[^@\.\s]+(\.[^@\.\s]+)+$/', $string);
-}
-
-function post($name) {
-    $string1 = trim(filter_input(INPUT_POST, $name));
-    $string2 = nl2br(strip_tags($string1));
-    return $string2;
-}
-
-function get($name) {
-    $string1 = trim(filter_input(INPUT_GET, $name));
-    $string2 = nl2br(strip_tags($string1));
-    return $string2;
+function val($string, $pattern) {
+    return preg_match($pattern, $string);
 }

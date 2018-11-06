@@ -7,7 +7,7 @@ class User_MDL {
     private $db;
 
     public function __construct() {
-        $this->db = Connection::get_instance();
+        $this->db = new Connection();
     }
 
     public function u_m_update_profile($a) {

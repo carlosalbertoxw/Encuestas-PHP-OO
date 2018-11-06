@@ -8,8 +8,6 @@ class User_CTL extends Controller {
         parent::__construct();
 
         $this->user_mdl = $this->load->model('user');
-
-        $this->session = $this->session_validation();
     }
 
     private function u_c_is_user_valid($user) {

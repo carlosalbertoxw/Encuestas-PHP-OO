@@ -8,19 +8,6 @@ function write_log($cadena, $tipo) {
 
 class Connection {
 
-    private static $instance = NULL;
-
-    private function __construct() {
-        
-    }
-
-    public static function get_instance() {
-        if (!isset(self::$instance)) {
-            self::$instance = new Connection();
-        }
-        return self::$instance;
-    }
-
     public function open_connection() {
         $conn = new mysqli('localhost', 'root', 'qwerty', 'application');
         if ($conn->connect_errno == 0) {

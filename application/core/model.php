@@ -7,7 +7,7 @@ class Model {
     private $db;
 
     public function __construct() {
-        $this->db = Connection::get_instance();
+        $this->db = new Connection();
     }
 
     public function get_user_by_key($key) {

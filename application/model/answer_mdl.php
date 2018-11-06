@@ -7,7 +7,7 @@ class Answer_MDL {
     private $db;
 
     public function __construct() {
-        $this->db = Connection::get_instance();
+        $this->db = new Connection();
     }
 
     public function a_m_add_answer($a) {

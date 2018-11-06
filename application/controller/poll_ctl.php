@@ -8,8 +8,6 @@ class Poll_CTL extends Controller {
         parent::__construct();
 
         $this->poll_mdl = $this->load->model('poll');
-
-        $this->session = $this->session_validation();
     }
 
     public function p_c_delete_poll() {

@@ -7,7 +7,7 @@ class Poll_MDL {
     private $db;
 
     public function __construct() {
-        $this->db = Connection::get_instance();
+        $this->db = new Connection();
     }
 
     public function p_m_get_poll($key) {

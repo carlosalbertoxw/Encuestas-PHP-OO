@@ -11,7 +11,7 @@ class Answer_CTL extends Controller {
     }
 
     public function a_c_add_answer_form() {
-        if (val_input_post('stars', VI_NUMERIC, 1, FALSE) and val_input_post('comment', VI_STRING, 1000, TRUE) and val_input_post('poll_key', VI_NUMERIC, 10, FALSE) and val_input_post('user_key', VI_NUMERIC, 10, FALSE) and val_input_post('user', VI_URI, 25, FALSE)) {
+        if (val_input_post('stars', VI_NUMERIC, 1, FALSE) and val_input_post('comment', VI_STRING, 1000, TRUE) and val_input_post('poll_key', VI_NUMERIC, 10, FALSE) and val_input_post('user_key', VI_NUMERIC, 10, FALSE) and val_input_post('user', VI_USERNAME, 25, FALSE)) {
             $data['stars'] = post('stars');
             $data['comment'] = post('comment');
             $data['poll_key'] = post('poll_key');

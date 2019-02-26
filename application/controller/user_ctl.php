@@ -122,7 +122,7 @@ class User_CTL extends Controller {
                 $a['password'] = post('password');
                 if ($r['u_password'] != '' and $a['password'] != '' and $r['u_password'] == encrypt_password($a['password'])) {
                     $data['key'] = $this->session['u_key'];
-                    if (val_input_post('user', VI_URI, 50, FALSE) and $this->u_c_is_user_valid(post('user'))) {
+                    if (val_input_post('user', VI_USERNAME, 50, FALSE) and $this->u_c_is_user_valid(post('user'))) {
                         $data['user'] = post('user');
                         $r = $this->user_mdl->u_m_update_user($data);
                         if ($r === 0) {
@@ -243,7 +243,7 @@ class User_CTL extends Controller {
     }
 
     public function u_c_profile() {
-        if (val_input_get('one', VI_URI, 25, FALSE)) {
+        if (val_input_get('one', VI_USERNAME, 25, FALSE)) {
             $user = get('one');
             $r = $this->user_mdl->u_m_get_profile($user);
             if ($r != null and count($r) == 6) {

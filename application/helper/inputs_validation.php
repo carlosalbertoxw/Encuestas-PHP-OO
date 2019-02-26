@@ -11,6 +11,14 @@ function val_input($val, $type, $length, $empty) {
     return t_l_e($val, $type, $length, $empty);
 }
 
+function val_input_get($val, $type, $length, $empty) {
+    return t_l_e(filter_input(INPUT_GET, $val), $type, $length, $empty);
+}
+
+function val_input_post($val, $type, $length, $empty) {
+    return t_l_e(filter_input(INPUT_POST, $val), $type, $length, $empty);
+}
+
 function t_l_e($val, $type, $length, $empty) {
     if (is_null($val)) {
         return FALSE;
@@ -65,4 +73,16 @@ function l($val, $flag, $length) {
 
 function val($string, $pattern) {
     return preg_match($pattern, $string);
+}
+
+function post($name) {
+    $string1 = trim(filter_input(INPUT_POST, $name));
+    $string2 = nl2br(strip_tags($string1));
+    return $string2;
+}
+
+function get($name) {
+    $string1 = trim(filter_input(INPUT_GET, $name));
+    $string2 = nl2br(strip_tags($string1));
+    return $string2;
 }

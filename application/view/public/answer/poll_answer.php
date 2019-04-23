@@ -10,7 +10,7 @@
             <div class="row">
                 <div class="col-md-offset-3 col-md-6 col-sm-12">
                     <h4 class="text-center"><?php print $a['title'] ?></h4>
-                    <h5 class="text-center">De: <a href="<?php print WEB_PATH . $a['p']['u_p_user'] ?>"><?php print $a['p']['u_p_name'] ?> <small>(<?php print $a['p']['u_p_user'] ?>)</small></a></h5>
+                    <h5 class="text-center">De: <a href="<?php print WEB_PATH . $a['p']['u_p_user_name'] ?>"><?php print $a['p']['u_p_name'] ?> <small>(<?php print $a['p']['u_p_user_name'] ?>)</small></a></h5>
                     <?php
                     print '<p class="text-center">' . $a['p']['p_description'] . '</p>';
                     ?>
@@ -46,7 +46,7 @@
                             </div>
                         </div>
                         <?php
-                        isset($a['p']) ? print '<input type="hidden" name="user_key" value="' . $a['p']['u_p_key'] . '"><input type="hidden" name="poll_key" value="' . $a['p']['p_key'] . '"><input type="hidden" name="user" value="' . $a['p']['u_p_user'] . '">' : null;
+                        isset($a['p']) ? print '<input type="hidden" name="user_key" value="' . $a['p']['u_p_key'] . '"><input type="hidden" name="poll_key" value="' . $a['p']['p_key'] . '"><input type="hidden" name="user" value="' . $a['p']['u_p_user_name'] . '">' : null;
                         ?>
                     </form>
                 </div>

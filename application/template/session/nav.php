@@ -17,7 +17,7 @@
                 <li class="dropdown">
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Usuario <span class="caret"></span></a>
                     <ul class="dropdown-menu">
-                        <li><a href="<?php print WEB_PATH . $a['u_p_user'] ?>">Ver perfil</a></li>
+                        <li><a href="<?php print WEB_PATH . $a['u_p_user_name'] ?>">Ver perfil</a></li>
                         <li><a href="<?php print WEB_PATH ?>session/edit-profile">Editar perfil</a></li>
                         <li><a href="<?php print WEB_PATH ?>session/change-user">Cambiar usuario</a></li>
                         <li><a href="<?php print WEB_PATH ?>session/change-email">Cambiar correo electrónico</a></li>

@@ -127,7 +127,7 @@ class User_CTL extends Controller {
                         $r = $this->user_mdl->u_m_update_user($data);
                         if ($r === 0) {
                             create_msj('Los datos se guardaron exitosamente', MSG_SUCCESS);
-                            $this->session['u_p_user'] = $data['user'];
+                            $this->session['u_p_user_name'] = $data['user'];
                             create_session_cookie($this->session, $this->session['remember']);
                         } elseif (strpos($r, '1062') !== FALSE) {
                             create_msj('<strong>El usuario ingresado ya pertenece a una cuenta.</strong>', 'danger');

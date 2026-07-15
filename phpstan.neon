@@ -1,0 +1,14 @@
+parameters:
+    level: 8
+    paths:
+        - src
+        - public/index.php
+        - bin
+        - tests
+    excludePaths:
+        # Plantillas: reciben sus variables vía extract(), que el análisis
+        # estático no puede seguir.
+        - src/Views
+    # Los repositorios consultan la base de datos: dos llamadas idénticas
+    # pueden devolver valores distintos, así que no se debe cachear su tipo.
+    rememberPossiblyImpureFunctionValues: false

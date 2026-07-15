@@ -1,0 +1,33 @@
+{
+    "name": "carlosalbertoxw/encuestas-php-oo",
+    "description": "Aplicación web de encuestas en PHP orientado a objetos con MySQL",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.2",
+        "ext-pdo_mysql": "*"
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^2.1",
+        "phpunit/phpunit": "^11.0",
+        "squizlabs/php_codesniffer": "^3.11"
+    },
+    "autoload": {
+        "psr-4": {
+            "Encuestas\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Encuestas\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "analyse": "phpstan analyse",
+        "cs": "phpcs"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

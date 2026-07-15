@@ -1,0 +1,11 @@
+vendor/
+var/
+.git/
+.github/
+.vs/
+.vscode/
+.idea/
+.claude/
+tests/
+.phpunit.cache/
+.env

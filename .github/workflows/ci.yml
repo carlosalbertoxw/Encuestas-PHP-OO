@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: encuestas_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql
+          coverage: none
+
+      - name: Lint de sintaxis
+        run: |
+          find src public bin tests -name '*.php' -print0 | xargs -0 -n1 -P4 php -l > /dev/null
+          echo "Sintaxis correcta"
+
+      - name: Instalar dependencias
+        run: composer install --no-progress --prefer-dist
+
+      - name: Análisis estático (PHPStan nivel 8)
+        run: php -d memory_limit=512M vendor/bin/phpstan analyse --no-progress
+
+      - name: Estilo de código (PSR-12)
+        run: vendor/bin/phpcs
+
+      - name: Pruebas (unitarias + integración y HTTP E2E contra MySQL 8.4)
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: '3306'
+          TEST_DB_DATABASE: encuestas_test
+          TEST_DB_USERNAME: root
+          TEST_DB_PASSWORD: root
+        run: vendor/bin/phpunit
+
+      - name: Construir la imagen Docker
+        run: docker build -t encuestas-php .

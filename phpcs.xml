@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<ruleset name="Encuestas">
+    <description>Estilo de código del proyecto: PSR-12.</description>
+
+    <file>src</file>
+    <file>public/index.php</file>
+    <file>bin</file>
+    <file>tests</file>
+
+    <!-- Plantillas PHP/HTML: la indentación mixta no sigue PSR-12. -->
+    <exclude-pattern>src/Views/*</exclude-pattern>
+
+    <arg name="colors"/>
+    <arg value="sp"/>
+
+    <rule ref="PSR12">
+        <!-- Los nombres de prueba en snake_case en español son deliberados y más legibles. -->
+        <exclude name="PSR1.Methods.CamelCapsMethodName.NotCamelCaps"/>
+    </rule>
+
+    <!-- Límite de línea razonable; PSR-12 solo lo trata como advertencia. -->
+    <rule ref="Generic.Files.LineLength">
+        <properties>
+            <property name="lineLimit" value="130"/>
+            <property name="absoluteLineLimit" value="150"/>
+        </properties>
+    </rule>
+</ruleset>

@@ -1,0 +1,7 @@
+# Enruta todo lo que no sea un archivo existente al front controller.
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.php [L]
+
+# No listar directorios.
+Options -Indexes

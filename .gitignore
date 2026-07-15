@@ -1,5 +1,22 @@
-#Archivos
-*.orig
+# Dependencias
+/vendor/
 
-#Carpetas
-/nbproject/private/
+# Configuración local con secretos
+/.env
+
+# Estado local de la aplicación (clave autogenerada, etc.)
+/var/*
+!/var/.gitkeep
+
+# Resultados de pruebas
+/.phpunit.cache/
+
+# IDEs
+/.vs/
+/.vscode/
+/.idea/
+/nbproject/
+
+# Sistema operativo
+Thumbs.db
+.DS_Store

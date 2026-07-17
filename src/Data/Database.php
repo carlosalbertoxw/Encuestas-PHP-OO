@@ -39,13 +39,19 @@ final class Database
     {
         if ($this->connection === null) {
             $dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4', $this->host, $this->port, $this->database);
+            // PDO::MYSQL_ATTR_FOUND_ROWS está deprecada desde PHP 8.5 en favor de
+            // Pdo\Mysql::ATTR_FOUND_ROWS (que existe desde 8.4); el ternario evita
+            // el aviso en 8.5 sin romper los PHP 8.2/8.3 que admite composer.json.
+            $foundRows = PHP_VERSION_ID >= 80400
+                ? \Pdo\Mysql::ATTR_FOUND_ROWS
+                : PDO::MYSQL_ATTR_FOUND_ROWS;
             $this->connection = new PDO($dsn, $this->username, $this->password, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
                 // rowCount() cuenta filas encontradas, no solo las modificadas, para
                 // que un UPDATE idempotente (mismo valor) siga reportando Success.
-                PDO::MYSQL_ATTR_FOUND_ROWS => true,
+                $foundRows => true,
             ]);
         }
         return $this->connection;

@@ -230,12 +230,10 @@ final class HttpEndpointTest extends TestCase
         $raw = curl_exec($handle);
         if (!is_string($raw)) {
             $error = curl_error($handle);
-            curl_close($handle);
             $this->fail("La petición {$method} {$path} falló: {$error}");
         }
         $status = (int) curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
         $headerSize = (int) curl_getinfo($handle, CURLINFO_HEADER_SIZE);
-        curl_close($handle);
 
         $headers = [];
         foreach (explode("\r\n", substr($raw, 0, $headerSize)) as $line) {

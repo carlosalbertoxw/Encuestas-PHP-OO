@@ -1,5 +1,5 @@
 # Imagen de la aplicación: PHP 8.3 + Apache, usuario no root, puerto 8080.
-FROM php:8.3-apache
+FROM php:8.5-apache
 
 # Extensión de MySQL y módulos de Apache (rewrite para el front controller,
 # headers para las cabeceras de seguridad, deflate para compresión gzip).

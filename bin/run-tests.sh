@@ -55,6 +55,6 @@ docker run --rm --network "$NETWORK" --entrypoint php \
     -e TEST_DB_DATABASE=encuestas_test \
     -e TEST_DB_USERNAME=root \
     -e TEST_DB_PASSWORD=root \
-    "$IMAGE" vendor/bin/phpunit --do-not-cache-result
+    "$IMAGE" vendor/bin/phpunit --do-not-record-test-run-history
 
 echo ">> Listo: suite completa en verde."

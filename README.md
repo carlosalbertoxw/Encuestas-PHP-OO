@@ -124,7 +124,7 @@ src/
 migrations/           # Scripts SQL versionados (tabla schemaversions)
 bin/migrate.php       # Aplica migraciones (+ datos demo en development)
 bin/run-tests.sh      # Suite completa contra un MySQL efímero en Docker
-tests/                # PHPUnit 12: unitarias, integración y HTTP E2E contra MySQL
+tests/                # PHPUnit 13: unitarias, integración y HTTP E2E contra MySQL
 Dockerfile            # Multi-stage: autoloader de Composer + PHP 8.5 y Apache, usuario no root
 docker-compose.yml    # web + MySQL 8.4 + Mailpit, con volumen persistente y healthcheck
 ```

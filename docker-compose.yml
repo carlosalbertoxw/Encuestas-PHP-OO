@@ -1,6 +1,6 @@
-# Aplicación web + MySQL 8.4, con contenedores y volumen propios. Los puertos
-# del host (BD en 3307 y web en 8081 por defecto) evitan choques con otros
-# servicios locales y se personalizan vía .env.
+# Aplicación web + MySQL 8.4 + Mailpit, con contenedores y volumen propios. Los
+# puertos del host (BD en 3307 y web en 8081 por defecto) evitan choques con
+# otros servicios locales y se personalizan vía .env.
 services:
   db:
     image: mysql:8.4
@@ -23,6 +23,15 @@ services:
       timeout: 5s
       retries: 10
 
+  # Servidor SMTP de pruebas: captura todos los correos y los muestra en http://localhost:8026.
+  mailpit:
+    image: axllent/mailpit:v1.33
+    container_name: encuestas-php-mailpit
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_SMTP_PORT:-1026}:1025"
+      - "${MAILPIT_UI_PORT:-8026}:8025"
+
   web:
     build:
       context: .
@@ -32,6 +41,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     environment:
       # La app se conecta al contenedor de MySQL por el nombre del servicio (db).
       DB_HOST: db
@@ -40,15 +51,19 @@ services:
       DB_USERNAME: ${MYSQL_USER:-encuestas}
       DB_PASSWORD: ${MYSQL_PASSWORD:-encuestas}
       APP_ENV: ${APP_ENV:-production}
-      # Clave de firma de tokens; el valor por defecto es solo para pruebas locales.
-      APP_KEY: ${APP_KEY:-clave-insegura-solo-para-desarrollo-cambiala}
+      # Clave de firma de tokens: obligatoria, sin valor por defecto (ver .env.example).
+      APP_KEY: ${APP_KEY:?Define APP_KEY en .env, por ejemplo con openssl rand -hex 32}
+      # URL pública con la que se construyen los enlaces de los correos.
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8081}
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_STARTTLS: "false"
       # Proxies inversos de confianza y redirección a HTTPS (ver .env.example).
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
       FORCE_HTTPS: ${FORCE_HTTPS:-false}
     ports:
       - "${WEB_PORT:-8081}:8080"
-    # Orquestadores (K8s, etc.) pueden usar la ruta HTTP /health como sonda
-    # de readiness/liveness.
+    # El HEALTHCHECK de la imagen consulta /health/live; /health/ready comprueba además la BD.
 
 volumes:
   db-data:

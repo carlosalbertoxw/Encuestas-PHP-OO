@@ -27,7 +27,7 @@ docker build -q -t "$IMAGE" . >/dev/null
 if [ ! -d vendor ]; then
     echo ">> Instalando dependencias de desarrollo con Composer..."
     docker run --rm -v "$PWD:/app" -w /app composer:2 \
-        install --no-progress --prefer-dist --ignore-platform-req=ext-pdo_mysql
+        composer install --no-progress --prefer-dist --ignore-platform-req=ext-pdo_mysql
 fi
 
 echo ">> Levantando un MySQL 8.4 efímero..."

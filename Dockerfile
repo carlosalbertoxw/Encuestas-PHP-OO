@@ -1,9 +1,20 @@
-# Imagen de la aplicación: PHP 8.5 + Apache, usuario no root, puerto 8080.
+# Etapa 1: autoloader optimizado de Composer, sin dependencias de desarrollo
+# (la aplicación no tiene dependencias de runtime; Composer solo genera el mapa de clases).
+FROM composer:2 AS vendor
+WORKDIR /app
+COPY composer.json composer.lock ./
+COPY src ./src
+RUN composer install --no-dev --no-progress --prefer-dist --classmap-authoritative \
+    --ignore-platform-req=ext-pdo_mysql
+
+# Etapa 2: imagen de la aplicación: PHP 8.5 + Apache, usuario no root, puerto 8080.
 FROM php:8.5-apache
 
-# Extensión de MySQL y módulos de Apache (rewrite para el front controller,
-# headers para las cabeceras de seguridad, deflate para compresión gzip).
-RUN docker-php-ext-install pdo_mysql \
+# Parches de seguridad del sistema base, extensión de MySQL y módulos de Apache
+# (rewrite para el front controller, headers para las cabeceras de seguridad,
+# deflate para compresión gzip).
+RUN apt-get update && apt-get upgrade -y --no-install-recommends && rm -rf /var/lib/apt/lists/* \
+    && docker-php-ext-install pdo_mysql \
     && a2enmod rewrite headers deflate
 
 # Apache escucha en 8080 para poder ejecutarse sin root, con el DocumentRoot
@@ -18,6 +29,7 @@ RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
 WORKDIR /var/www/html
 COPY . .
+COPY --from=vendor /app/vendor ./vendor
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh \
     && mkdir -p /var/www/html/var \
@@ -25,4 +37,6 @@ RUN chmod +x /usr/local/bin/entrypoint.sh \
 
 USER www-data
 EXPOSE 8080
+HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 \
+    CMD ["curl", "-fsS", "-o", "/dev/null", "http://localhost:8080/health/live"]
 ENTRYPOINT ["entrypoint.sh"]

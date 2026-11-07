@@ -5,6 +5,9 @@ on:
     branches: [master]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -38,8 +41,14 @@ jobs:
           find src public bin tests -name '*.php' -print0 | xargs -0 -n1 -P4 php -l > /dev/null
           echo "Sintaxis correcta"
 
+      - name: Validar composer.json y composer.lock
+        run: composer validate --strict
+
       - name: Instalar dependencias
         run: composer install --no-progress --prefer-dist
+
+      - name: Auditar dependencias vulnerables
+        run: composer audit
 
       - name: Análisis estático (PHPStan nivel 8)
         run: php -d memory_limit=512M vendor/bin/phpstan analyse --no-progress
@@ -56,5 +65,29 @@ jobs:
           TEST_DB_PASSWORD: root
         run: vendor/bin/phpunit
 
-      - name: Construir la imagen Docker
-        run: docker build -t encuestas-php .
+  # Construye la imagen de producción y la escanea en busca de vulnerabilidades.
+  imagen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Construir la imagen
+        run: docker build -t encuestas-php:${{ github.sha }} .
+
+      - name: Escanear la imagen (Trivy)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: encuestas-php:${{ github.sha }}
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
+
+  # Análisis estático de seguridad (SAST). CodeQL no analiza PHP; Semgrep sí.
+  semgrep:
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v7
+      - name: Analizar con Semgrep
+        run: semgrep scan --config p/php --config p/security-audit --error --metrics=off --exclude vendor

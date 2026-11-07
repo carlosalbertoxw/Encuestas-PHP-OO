@@ -10,11 +10,11 @@ $errors = $errors ?? [];
         <h4 class="text-center mb-3"><?= e($title) ?></h4>
         <div class="card">
             <div class="card-body">
-                <form action="/User/ChangeEmail" method="post">
+                <form action="/Account/ChangeEmail" method="post">
                     <?= Csrf::field() ?>
                     <div class="mb-3">
                         <label class="form-label" for="Email">Correo electrónico</label>
-                        <input class="form-control" type="email" id="Email" name="Email" maxlength="50" required
+                        <input class="form-control" type="email" id="Email" name="Email" maxlength="254" required
                                autocomplete="email" value="<?= e($email) ?>">
                         <span class="text-danger small"><?= e($errors['Email'] ?? '') ?></span>
                     </div>

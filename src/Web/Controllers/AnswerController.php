@@ -19,8 +19,6 @@ use Encuestas\Web\View;
 /** Responder encuestas y consultar las respuestas recibidas. */
 final class AnswerController extends Controller
 {
-    private const PAGE_SIZE = 10;
-
     public function __construct(
         View $view,
         AuthService $auth,
@@ -80,10 +78,9 @@ final class AnswerController extends Controller
         if ($poll === null) {
             throw new NotFoundException((string) $id);
         }
-        $page = max(1, (int) ($this->query('page') ?? '1'));
         $this->view->render('answer/answers', "Respuestas: {$poll->title}", [
             'pollId' => $id,
-            'result' => $this->answers->getAnswersForPoll($id, $page, self::PAGE_SIZE),
+            'result' => $this->answers->getAnswersForPoll($id, $this->pageNumber()),
         ], Flash::pull());
     }
 }

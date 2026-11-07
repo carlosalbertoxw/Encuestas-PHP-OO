@@ -10,7 +10,7 @@ $errors = $errors ?? [];
         <h4 class="text-center mb-3"><?= e($title) ?></h4>
         <div class="card">
             <div class="card-body">
-                <form action="/User/ChangeUser" method="post">
+                <form action="/Account/ChangeUser" method="post">
                     <?= Csrf::field() ?>
                     <div class="mb-3">
                         <label class="form-label" for="UserName">Usuario</label>

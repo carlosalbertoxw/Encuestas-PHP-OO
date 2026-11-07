@@ -28,6 +28,12 @@ abstract class Controller
         return trim((string) ($_POST[$name] ?? ''));
     }
 
+    /** Número de página del parámetro ?page= (1 si falta o no es válido). */
+    protected function pageNumber(): int
+    {
+        return max(1, (int) ($this->query('page') ?? '1'));
+    }
+
     protected function query(string $name): ?string
     {
         $value = $_GET[$name] ?? null;

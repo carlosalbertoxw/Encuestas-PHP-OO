@@ -38,7 +38,7 @@ final class RepositoryIntegrationTest extends TestCase
             getenv('TEST_DB_USERNAME') ?: 'root',
             getenv('TEST_DB_PASSWORD') ?: 'root',
         );
-        (new MigrationRunner(self::$database, new Logger()))->run();
+        (new MigrationRunner(self::$database, new Logger('', 'php://memory')))->run();
     }
 
     protected function setUp(): void
@@ -92,7 +92,7 @@ final class RepositoryIntegrationTest extends TestCase
 
         $this->assertTrue($polls->addPoll(self::newPoll($demo->user->id)));
 
-        $saved = $polls->getPolls($demo->user->id)[0];
+        $saved = $polls->getPolls($demo->user->id, 1)->items[0];
         $this->assertNull($polls->getPoll($ana->user->id, $saved->id), 'Otro usuario no debe poder editarla');
         $this->assertFalse($polls->deletePoll($ana->user->id, $saved->id), 'Otro usuario no debe poder borrarla');
         $this->assertTrue($polls->deletePoll($demo->user->id, $saved->id));
@@ -107,7 +107,7 @@ final class RepositoryIntegrationTest extends TestCase
         $demo = $this->profile('demo@encuestas.dev');
 
         $polls->addPoll(self::newPoll($demo->user->id));
-        $pollId = $polls->getPolls($demo->user->id)[0]->id;
+        $pollId = $polls->getPolls($demo->user->id, 1)->items[0]->id;
 
         $answer = new Answer();
         $answer->stars = 5;
@@ -134,7 +134,58 @@ final class RepositoryIntegrationTest extends TestCase
 
         $this->assertSame(RepositoryResult::Success, $users->deleteAccount($demo->user->id));
         $this->assertNull($users->getProfileByEmail('demo@encuestas.dev'));
-        $this->assertSame([], $polls->getPolls($demo->user->id));
+        $this->assertSame([], $polls->getPolls($demo->user->id, 1)->items);
+    }
+
+    public function test_las_encuestas_se_paginan_por_posicion(): void
+    {
+        $users = new UserRepository($this->db());
+        $polls = new PollRepository($this->db());
+        $users->createUser('demo@encuestas.dev', 'hash', 'sello-1');
+        $demo = $this->profile('demo@encuestas.dev');
+        for ($position = 12; $position >= 1; $position--) {
+            $poll = self::newPoll($demo->user->id);
+            $poll->position = $position;
+            $polls->addPoll($poll);
+        }
+
+        $second = $polls->getPolls($demo->user->id, 2, 10);
+
+        $this->assertSame(12, $second->totalCount);
+        $this->assertSame([11, 12], array_map(static fn (Poll $p): int => $p->position, $second->items));
+    }
+
+    public function test_el_correo_pendiente_solo_se_aplica_al_confirmarlo(): void
+    {
+        $users = new UserRepository($this->db());
+        $users->createUser('viejo@test.com', 'hash', 'sello-1');
+        $userId = $this->profile('viejo@test.com')->user->id;
+
+        $this->assertSame(RepositoryResult::Success, $users->setPendingEmail($userId, 'nuevo@test.com'));
+        $this->assertSame('viejo@test.com', $users->getUser($userId)?->email);
+        $this->assertSame('nuevo@test.com', $users->getUser($userId)?->pendingEmail);
+
+        // Un enlace para otra dirección (p. ej. de una solicitud anterior) no aplica nada.
+        $this->assertSame(RepositoryResult::NotFound, $users->confirmEmailChange($userId, 'otro@test.com', 'sello-2'));
+        $this->assertSame(RepositoryResult::Success, $users->confirmEmailChange($userId, 'nuevo@test.com', 'sello-2'));
+
+        $changed = $users->getUser($userId);
+        $this->assertNotNull($changed);
+        $this->assertSame('nuevo@test.com', $changed->email);
+        $this->assertNull($changed->pendingEmail);
+        $this->assertTrue($changed->emailConfirmed);
+        $this->assertSame('sello-2', $users->getSecurityStamp($userId));
+    }
+
+    public function test_confirmar_un_correo_que_ya_usa_otra_cuenta_devuelve_duplicate(): void
+    {
+        $users = new UserRepository($this->db());
+        $users->createUser('ocupado@test.com', 'hash', 's');
+        $users->createUser('quiere-cambiar@test.com', 'hash', 's');
+        $userId = $this->profile('quiere-cambiar@test.com')->user->id;
+        $users->setPendingEmail($userId, 'ocupado@test.com');
+
+        $this->assertSame(RepositoryResult::Duplicate, $users->confirmEmailChange($userId, 'ocupado@test.com', 's2'));
     }
 
     private function db(): Database

@@ -12,6 +12,7 @@ use Encuestas\Data\Database;
 use Encuestas\Data\PollRepository;
 use Encuestas\Data\UserRepository;
 use Encuestas\Infrastructure\Logger;
+use Encuestas\Web\Controllers\AccountController;
 use Encuestas\Web\Controllers\AnswerController;
 use Encuestas\Web\Controllers\ErrorController;
 use Encuestas\Web\Controllers\PollController;
@@ -27,18 +28,21 @@ use Encuestas\Web\Services\DbAttemptCounterStore;
 use Encuestas\Web\Services\LoggingEmailSender;
 use Encuestas\Web\Services\PasswordService;
 use Encuestas\Web\Services\RateLimiter;
+use Encuestas\Web\Services\SmtpEmailSender;
 use Encuestas\Web\Services\TokenService;
 use Encuestas\Web\View;
 
 // Con el servidor embebido de PHP (php -S) los archivos existentes se sirven tal cual.
+// Solo se aceptan rutas que, ya resueltas, sigan dentro de public/.
 if (PHP_SAPI === 'cli-server') {
-    $file = __DIR__ . parse_url((string) $_SERVER['REQUEST_URI'], PHP_URL_PATH);
-    if (is_file($file)) {
+    $file = realpath(__DIR__ . parse_url((string) $_SERVER['REQUEST_URI'], PHP_URL_PATH));
+    // nosemgrep: php.lang.security.injection.tainted-filename.tainted-filename -- ruta confinada a public/
+    if ($file !== false && str_starts_with($file, __DIR__ . DIRECTORY_SEPARATOR) && is_file($file)) {
         return false;
     }
 }
 
-require dirname(__DIR__) . '/src/autoload.php';
+require dirname(__DIR__) . '/vendor/autoload.php';
 
 $isDevelopment = Config::isDevelopment();
 ini_set('display_errors', $isDevelopment ? '1' : '0');
@@ -47,12 +51,22 @@ error_reporting(E_ALL);
 $path = (string) (parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?? '/');
 $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 
-$logger = new Logger();
+// Identificador de la petición: viaja en la cabecera X-Request-Id y en cada línea de log.
+$logger = new Logger(bin2hex(random_bytes(8)));
+header('X-Request-Id: ' . $logger->requestId());
+
+// Liveness: solo confirma que PHP responde (sin BD, para que una caída de MySQL
+// no provoque reinicios en bucle).
+if ($path === '/health/live') {
+    header('Content-Type: text/plain; charset=utf-8');
+    echo 'Healthy';
+    return;
+}
+
 $db = Database::fromEnvironment();
 
-// Endpoint de salud: comprueba la conectividad con la base de datos
-// (útil como sonda de readiness/liveness para orquestadores).
-if ($path === '/health') {
+// Readiness: además comprueba la conectividad con la base de datos.
+if ($path === '/health/ready') {
     header('Content-Type: text/plain; charset=utf-8');
     try {
         $db->connection()->query('SELECT 1');
@@ -70,10 +84,12 @@ $isHttps = $request->isHttps();
 
 // Redirección http -> https, activable con FORCE_HTTPS=true cuando la app
 // termina TLS (directamente o tras un proxy de confianza). Apagada en
-// desarrollo y por defecto, para no romper el acceso local por http.
+// desarrollo y por defecto, para no romper el acceso local por http. El destino
+// sale de APP_BASE_URL, no de la cabecera Host.
 if (!$isDevelopment && !$isHttps && Config::get('FORCE_HTTPS') === 'true') {
     http_response_code(308);
-    header('Location: https://' . $request->host() . ($_SERVER['REQUEST_URI'] ?? '/'));
+    $host = (string) parse_url(Config::baseUrl(), PHP_URL_HOST);
+    header('Location: https://' . $host . ($_SERVER['REQUEST_URI'] ?? '/'));
     return;
 }
 
@@ -121,7 +137,22 @@ $lockout = new AccountLockout($counterStore);
 $rateLimiter = new RateLimiter($counterStore);
 $auth = new AuthService($users, $passwords, $lockout, $logger);
 $tokens = new TokenService(Config::appKey());
-$email = new LoggingEmailSender($logger);
+// Correo: SMTP si está configurado; si no, en development se escribe en el log.
+// En cualquier otro entorno es un error de configuración.
+if (Config::get('SMTP_HOST') !== '') {
+    $email = new SmtpEmailSender(
+        Config::get('SMTP_HOST'),
+        (int) Config::get('SMTP_PORT', '587'),
+        Config::get('SMTP_STARTTLS', 'true') === 'true',
+        Config::get('SMTP_USER'),
+        Config::get('SMTP_PASSWORD'),
+        Config::get('SMTP_FROM', 'Encuestas <no-reply@encuestas.local>'),
+    );
+} elseif ($isDevelopment) {
+    $email = new LoggingEmailSender($logger);
+} else {
+    throw new RuntimeException('Falta SMTP_HOST para enviar los correos.');
+}
 $view = new View($auth);
 
 $errorController = new ErrorController($view, $auth, $request);
@@ -163,6 +194,7 @@ try {
         $rateLimiter,
         $logger
     );
+    $accountController = new AccountController($view, $auth, $request, $users, $passwords, $tokens, $email, $logger);
     $pollController = new PollController($view, $auth, $request, $polls, $logger);
     $answerController = new AnswerController($view, $auth, $request, $polls, $answers);
 
@@ -176,17 +208,19 @@ try {
     $router->post('user/forgotpassword', fn () => $userController->forgotPasswordPost());
     $router->get('user/resetpassword', fn () => $userController->resetPassword());
     $router->post('user/resetpassword', fn () => $userController->resetPasswordPost());
-    $router->get('user/editprofile', fn () => $userController->editProfile(), requiresAuth: true);
-    $router->post('user/editprofile', fn () => $userController->editProfilePost(), requiresAuth: true);
-    $router->get('user/changeuser', fn () => $userController->changeUser(), requiresAuth: true);
-    $router->post('user/changeuser', fn () => $userController->changeUserPost(), requiresAuth: true);
-    $router->get('user/changeemail', fn () => $userController->changeEmail(), requiresAuth: true);
-    $router->post('user/changeemail', fn () => $userController->changeEmailPost(), requiresAuth: true);
-    $router->get('user/changepassword', fn () => $userController->changePassword(), requiresAuth: true);
-    $router->post('user/changepassword', fn () => $userController->changePasswordPost(), requiresAuth: true);
-    $router->get('user/deleteaccount', fn () => $userController->deleteAccount(), requiresAuth: true);
-    $router->post('user/deleteaccount', fn () => $userController->deleteAccountPost(), requiresAuth: true);
     $router->post('user/closesession', fn () => $userController->closeSession(), requiresAuth: true);
+
+    $router->get('account/editprofile', fn () => $accountController->editProfile(), requiresAuth: true);
+    $router->post('account/editprofile', fn () => $accountController->editProfilePost(), requiresAuth: true);
+    $router->get('account/changeuser', fn () => $accountController->changeUser(), requiresAuth: true);
+    $router->post('account/changeuser', fn () => $accountController->changeUserPost(), requiresAuth: true);
+    $router->get('account/changeemail', fn () => $accountController->changeEmail(), requiresAuth: true);
+    $router->post('account/changeemail', fn () => $accountController->changeEmailPost(), requiresAuth: true);
+    $router->get('account/confirmemailchange', fn () => $accountController->confirmEmailChange());
+    $router->get('account/changepassword', fn () => $accountController->changePassword(), requiresAuth: true);
+    $router->post('account/changepassword', fn () => $accountController->changePasswordPost(), requiresAuth: true);
+    $router->get('account/deleteaccount', fn () => $accountController->deleteAccount(), requiresAuth: true);
+    $router->post('account/deleteaccount', fn () => $accountController->deleteAccountPost(), requiresAuth: true);
 
     $router->get('poll/index', fn () => $pollController->index(), requiresAuth: true);
     $router->get('poll/add', fn () => $pollController->add(), requiresAuth: true);
@@ -203,12 +237,10 @@ try {
 } catch (NotFoundException) {
     $errorController->notFound();
 } catch (Throwable $exception) {
-    $logger->error(sprintf(
-        'Excepción no controlada: %s en %s:%d',
-        $exception->getMessage(),
-        $exception->getFile(),
-        $exception->getLine()
-    ));
+    $logger->error('Excepción no controlada: ' . $exception->getMessage(), [
+        'file' => $exception->getFile(),
+        'line' => $exception->getLine(),
+    ]);
     if ($isDevelopment) {
         throw $exception;
     }

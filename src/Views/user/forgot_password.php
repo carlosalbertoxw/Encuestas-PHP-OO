@@ -16,7 +16,7 @@ $email = $email ?? '';
                     <?= Csrf::field() ?>
                     <div class="mb-3">
                         <label class="form-label" for="Email">Correo electrónico</label>
-                        <input class="form-control" type="email" id="Email" name="Email" maxlength="50" required
+                        <input class="form-control" type="email" id="Email" name="Email" maxlength="254" required
                                autocomplete="email" value="<?= e($email) ?>">
                         <span class="text-danger small"><?= e($errors['Email'] ?? '') ?></span>
                     </div>

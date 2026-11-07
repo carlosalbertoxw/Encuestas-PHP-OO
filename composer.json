@@ -15,7 +15,10 @@
     "autoload": {
         "psr-4": {
             "Encuestas\\": "src/"
-        }
+        },
+        "files": [
+            "src/Web/helpers.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {

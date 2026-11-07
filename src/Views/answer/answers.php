@@ -28,19 +28,5 @@
         </div>
     <?php endforeach; ?>
 
-    <?php if ($result->totalPages() > 1): ?>
-        <nav aria-label="Paginación de respuestas">
-            <ul class="pagination justify-content-center">
-                <li class="page-item <?= $result->hasPrevious() ? '' : 'disabled' ?>">
-                    <a class="page-link" href="/Answer/Answers/<?= e($pollId) ?>?page=<?= e($result->page - 1) ?>">Anterior</a>
-                </li>
-                <li class="page-item disabled">
-                    <span class="page-link"><?= e($result->page) ?> / <?= e($result->totalPages()) ?></span>
-                </li>
-                <li class="page-item <?= $result->hasNext() ? '' : 'disabled' ?>">
-                    <a class="page-link" href="/Answer/Answers/<?= e($pollId) ?>?page=<?= e($result->page + 1) ?>">Siguiente</a>
-                </li>
-            </ul>
-        </nav>
-    <?php endif; ?>
+    <?php $pagerBase = '/Answer/Answers/' . $pollId . '?'; require __DIR__ . '/../shared/pager.php'; ?>
 </div>

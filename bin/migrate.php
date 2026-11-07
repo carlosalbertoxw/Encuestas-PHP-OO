@@ -6,7 +6,7 @@ declare(strict_types=1);
 // demostración. Lo ejecuta el contenedor web antes de arrancar Apache y puede
 // lanzarse a mano en local: php bin/migrate.php
 
-require __DIR__ . '/../src/autoload.php';
+require __DIR__ . '/../vendor/autoload.php';
 
 use Encuestas\Config;
 use Encuestas\Data\AnswerRepository;

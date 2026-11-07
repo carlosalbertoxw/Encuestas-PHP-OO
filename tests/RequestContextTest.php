@@ -73,15 +73,4 @@ final class RequestContextTest extends TestCase
 
         $this->assertTrue($context->isHttps());
     }
-
-    public function test_url_absoluta_usa_esquema_y_host(): void
-    {
-        $context = new RequestContext(['10.0.0.1'], [
-            'REMOTE_ADDR' => '10.0.0.1',
-            'HTTP_X_FORWARDED_PROTO' => 'https',
-            'HTTP_HOST' => 'encuestas.example',
-        ]);
-
-        $this->assertSame('https://encuestas.example/User/Index', $context->absoluteUrl('/User/Index'));
-    }
 }

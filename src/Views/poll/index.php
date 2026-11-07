@@ -1,14 +1,14 @@
 <?php
-/** Tablero. Variables: list<Encuestas\Model\Poll> $polls, string $title, ?string $message. */
+/** Tablero. Variables: Encuestas\Data\PagedResult $result, string $title, ?string $message. */
 use Encuestas\Web\Csrf;
 ?>
 <div class="mt-3">
     <?php require __DIR__ . '/../shared/message.php'; ?>
     <h4 class="text-center mb-3"><?= e($title) ?></h4>
-    <?php if ($polls === []): ?>
+    <?php if ($result->totalCount === 0): ?>
         <p class="text-center text-secondary">Aún no tienes encuestas. Usa «Agregar encuesta» para crear la primera.</p>
     <?php endif; ?>
-    <?php foreach ($polls as $item): ?>
+    <?php foreach ($result->items as $item): ?>
         <div class="card mb-3">
             <div class="card-body">
                 <h5 class="card-title"><?= e($item->title) ?></h5>
@@ -26,4 +26,6 @@ use Encuestas\Web\Csrf;
             </div>
         </div>
     <?php endforeach; ?>
+    <?php $pagerBase = '/Poll/Index?'; ?>
+    <?php require __DIR__ . '/../shared/pager.php'; ?>
 </div>

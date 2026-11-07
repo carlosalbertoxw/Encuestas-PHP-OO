@@ -20,10 +20,9 @@ class AnswerRepository
      *
      * @return PagedResult<Answer>
      */
-    public function getAnswersForPoll(int $pollId, int $page, int $pageSize): PagedResult
+    public function getAnswersForPoll(int $pollId, int $page, int $pageSize = PagedResult::DEFAULT_PAGE_SIZE): PagedResult
     {
-        $page = max(1, $page);
-        $pageSize = $pageSize < 1 ? 10 : $pageSize;
+        [$page, $pageSize] = PagedResult::normalize($page, $pageSize);
 
         $pdo = $this->db->connection();
 

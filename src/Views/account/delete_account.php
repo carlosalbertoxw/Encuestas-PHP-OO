@@ -11,7 +11,7 @@ $errors = $errors ?? [];
         <div class="card border-danger">
             <div class="card-body">
                 <p class="text-danger">Esta acción elimina tu cuenta y todos tus datos de forma permanente.</p>
-                <form action="/User/DeleteAccount" method="post"
+                <form action="/Account/DeleteAccount" method="post"
                       data-confirm="¿Seguro que quieres borrar tu cuenta? Esta acción no se puede deshacer.">
                     <?= Csrf::field() ?>
                     <div class="mb-3">

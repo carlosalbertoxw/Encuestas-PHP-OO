@@ -31,7 +31,7 @@ final class PollController extends Controller
     public function index(): void
     {
         $this->view->render('poll/index', 'Tablero', [
-            'polls' => $this->polls->getPolls($this->auth->userId()),
+            'result' => $this->polls->getPolls($this->auth->userId(), $this->pageNumber()),
         ], Flash::pull());
     }
 
@@ -78,7 +78,7 @@ final class PollController extends Controller
         if ($id < 1) {
             Flash::set(Messages::VALIDATION_ERROR);
         } elseif ($this->polls->deletePoll($this->auth->userId(), $id)) {
-            $this->logger->info("Encuesta {$id} eliminada por el usuario {$this->auth->userId()}");
+            $this->logger->info('Encuesta eliminada', ['pollId' => $id, 'userId' => $this->auth->userId()]);
             Flash::set(Messages::POLL_DELETED);
         } else {
             Flash::set(Messages::POLL_DELETE_ERROR);

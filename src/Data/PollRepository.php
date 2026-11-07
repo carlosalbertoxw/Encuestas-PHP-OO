@@ -14,21 +14,32 @@ class PollRepository
     }
 
     /**
-     * Encuestas de un usuario, ordenadas por posición.
+     * Página de encuestas de un usuario, ordenadas por posición.
      *
-     * @return list<Poll>
+     * @return PagedResult<Poll>
      */
-    public function getPolls(int $userId): array
+    public function getPolls(int $userId, int $page, int $pageSize = PagedResult::DEFAULT_PAGE_SIZE): PagedResult
     {
-        $statement = $this->db->connection()->prepare(
-            'SELECT p_key, p_title, p_description, p_position, p_user_key FROM a_polls WHERE p_user_key=? ORDER BY p_position ASC'
+        [$page, $pageSize] = PagedResult::normalize($page, $pageSize);
+        $pdo = $this->db->connection();
+
+        $countStatement = $pdo->prepare('SELECT COUNT(*) FROM a_polls WHERE p_user_key=?');
+        $countStatement->execute([$userId]);
+        $total = (int) $countStatement->fetchColumn();
+
+        $statement = $pdo->prepare(
+            'SELECT p_key, p_title, p_description, p_position, p_user_key FROM a_polls WHERE p_user_key=? '
+            . 'ORDER BY p_position ASC, p_key ASC LIMIT ? OFFSET ?'
         );
-        $statement->execute([$userId]);
+        $statement->bindValue(1, $userId, \PDO::PARAM_INT);
+        $statement->bindValue(2, $pageSize, \PDO::PARAM_INT);
+        $statement->bindValue(3, ($page - 1) * $pageSize, \PDO::PARAM_INT);
+        $statement->execute();
         $polls = [];
         while (($row = $statement->fetch()) !== false) {
             $polls[] = $this->mapPoll($row);
         }
-        return $polls;
+        return new PagedResult($polls, $page, $pageSize, $total);
     }
 
     /** Una encuesta concreta, validando que pertenezca al usuario. */

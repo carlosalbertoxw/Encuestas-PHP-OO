@@ -45,7 +45,8 @@ class UserRepository
     public function getUser(int $id): ?User
     {
         $statement = $this->db->connection()->prepare(
-            'SELECT u_key, u_email, u_email_confirmed, u_password, u_security_stamp FROM a_users WHERE u_key=?'
+            'SELECT u_key, u_email, u_email_confirmed, u_pending_email, u_password, u_security_stamp '
+            . 'FROM a_users WHERE u_key=?'
         );
         $statement->execute([$id]);
         $row = $statement->fetch();
@@ -65,6 +66,11 @@ class UserRepository
     public function confirmEmail(int $id): RepositoryResult
     {
         return $this->executeUpdate('UPDATE a_users SET u_email_confirmed=1 WHERE u_key=?', [$id]);
+    }
+
+    public function getProfileById(int $id): ?UserProfile
+    {
+        return $this->getProfile('u.u_key=?', (string) $id);
     }
 
     public function getProfileByEmail(string $email): ?UserProfile
@@ -87,9 +93,27 @@ class UserRepository
         return $this->executeUpdate('UPDATE a_users_profiles SET u_p_user_name=? WHERE u_p_key=?', [$userName, $id]);
     }
 
-    public function updateEmail(int $id, string $email): RepositoryResult
+    /**
+     * Guarda el correo nuevo como pendiente; la cuenta sigue usando el actual
+     * hasta que se confirma con confirmEmailChange().
+     */
+    public function setPendingEmail(int $id, string $email): RepositoryResult
     {
-        return $this->executeUpdate('UPDATE a_users SET u_email=? WHERE u_key=?', [$email, $id]);
+        return $this->executeUpdate('UPDATE a_users SET u_pending_email=? WHERE u_key=?', [$email, $id]);
+    }
+
+    /**
+     * Aplica el correo pendiente si sigue siendo $email y rota el sello para
+     * cerrar las demás sesiones. Duplicate si otra cuenta ya usa ese correo;
+     * NotFound si el cambio pendiente ya no coincide.
+     */
+    public function confirmEmailChange(int $id, string $email, string $newSecurityStamp): RepositoryResult
+    {
+        return $this->executeUpdate(
+            'UPDATE a_users SET u_email=u_pending_email, u_pending_email=NULL, u_email_confirmed=1, '
+            . 'u_security_stamp=? WHERE u_key=? AND u_pending_email=?',
+            [$newSecurityStamp, $id, $email]
+        );
     }
 
     /** Actualiza solo el hash (p. ej. al regenerarlo con parámetros nuevos); conserva el sello de seguridad. */
@@ -118,7 +142,8 @@ class UserRepository
     private function getProfile(string $where, string $value): ?UserProfile
     {
         $statement = $this->db->connection()->prepare(
-            'SELECT u.u_key, u.u_email, u.u_email_confirmed, u.u_password, u.u_security_stamp, up.u_p_user_name, up.u_p_name '
+            'SELECT u.u_key, u.u_email, u.u_email_confirmed, u.u_pending_email, u.u_password, u.u_security_stamp, '
+            . 'up.u_p_user_name, up.u_p_name '
             . 'FROM a_users AS u JOIN a_users_profiles AS up ON u.u_key = up.u_p_key WHERE ' . $where
         );
         $statement->execute([$value]);
@@ -148,6 +173,7 @@ class UserRepository
         $user->id = (int) $row['u_key'];
         $user->email = (string) $row['u_email'];
         $user->emailConfirmed = (bool) $row['u_email_confirmed'];
+        $user->pendingEmail = $row['u_pending_email'] === null ? null : (string) $row['u_pending_email'];
         $user->passwordHash = (string) $row['u_password'];
         $user->securityStamp = (string) $row['u_security_stamp'];
         return $user;

@@ -58,5 +58,19 @@ final class TokenServiceTest extends TestCase
 
         $this->assertNull($this->service->validatePasswordResetToken($confirm));
         $this->assertNull($this->service->validateEmailConfirmationToken($reset));
+        $this->assertNull($this->service->validateEmailChangeToken($confirm));
+        $this->assertNull($this->service->validateEmailConfirmationToken(
+            $this->service->createEmailChangeToken(42, 'a@b.dev')
+        ));
+    }
+
+    public function test_el_token_de_cambio_de_correo_conserva_direcciones_raras(): void
+    {
+        $token = $this->service->createEmailChangeToken(7, 'nombre:raro@pruebas.dev');
+
+        $this->assertSame(
+            ['userId' => 7, 'email' => 'nombre:raro@pruebas.dev'],
+            $this->service->validateEmailChangeToken($token)
+        );
     }
 }

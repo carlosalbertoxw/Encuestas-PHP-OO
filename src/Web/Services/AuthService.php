@@ -42,7 +42,9 @@ class AuthService
     public function login(string $email, string $password, string $remoteIp): LoginResult
     {
         if ($this->lockout->isLocked($email)) {
-            $this->logger->warning("Inicio de sesión bloqueado por exceso de intentos para {$email}");
+            $this->logger->warning('Inicio de sesión bloqueado por exceso de intentos', [
+                'email' => LogRedaction::email($email),
+            ]);
             return LoginResult::LockedOut;
         }
 
@@ -53,7 +55,10 @@ class AuthService
 
         if ($profile === null || $outcome === PasswordVerificationOutcome::Failed) {
             $this->lockout->recordFailure($email);
-            $this->logger->warning("Intento de inicio de sesión fallido para {$email} desde {$remoteIp}");
+            $this->logger->warning('Intento de inicio de sesión fallido', [
+                'email' => LogRedaction::email($email),
+                'ip' => $remoteIp,
+            ]);
             return LoginResult::InvalidCredentials;
         }
 

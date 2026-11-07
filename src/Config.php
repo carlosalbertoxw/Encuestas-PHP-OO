@@ -59,6 +59,31 @@ final class Config
         return $key;
     }
 
+    /**
+     * URL pública de la aplicación, sin barra final. Los enlaces de los correos se
+     * construyen con ella y nunca con la cabecera Host: si no, un atacante podría
+     * hacer que el enlace de restablecimiento de otra persona apunte a su dominio.
+     * Obligatoria fuera de development.
+     */
+    public static function baseUrl(): string
+    {
+        $value = self::get('APP_BASE_URL', self::isDevelopment() ? 'http://localhost:8081' : '');
+        $scheme = parse_url($value, PHP_URL_SCHEME);
+        $host = parse_url($value, PHP_URL_HOST);
+        if (!in_array($scheme, ['http', 'https'], true) || !is_string($host) || $host === '') {
+            throw new \RuntimeException(
+                'Falta APP_BASE_URL, la URL pública de la aplicación (por ejemplo: https://encuestas.example.com).'
+            );
+        }
+        return rtrim($value, '/');
+    }
+
+    /** URL absoluta para los enlaces de los correos. */
+    public static function absoluteUrl(string $path): string
+    {
+        return self::baseUrl() . $path;
+    }
+
     public static function basePath(): string
     {
         return dirname(__DIR__);

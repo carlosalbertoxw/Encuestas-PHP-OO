@@ -66,17 +66,6 @@ final class RequestContext
             && ($this->server['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
     }
 
-    public function host(): string
-    {
-        return (string) ($this->server['HTTP_HOST'] ?? 'localhost');
-    }
-
-    /** URL absoluta hacia esta aplicación (para los enlaces enviados por correo). */
-    public function absoluteUrl(string $path): string
-    {
-        return ($this->isHttps() ? 'https' : 'http') . '://' . $this->host() . $path;
-    }
-
     private function isTrustedProxy(string $ip): bool
     {
         foreach ($this->trustedProxies as $trusted) {

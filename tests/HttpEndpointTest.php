@@ -42,7 +42,7 @@ final class HttpEndpointTest extends TestCase
         $password = getenv('TEST_DB_PASSWORD') ?: 'root';
 
         self::$database = new Database($host, (int) $port, $name, $user, $password);
-        (new MigrationRunner(self::$database, new Logger()))->run();
+        (new MigrationRunner(self::$database, new Logger('', 'php://memory')))->run();
         self::$database->connection()->exec('DELETE FROM a_users');
         self::$database->connection()->exec('DELETE FROM a_attempt_counters');
         self::$database->connection()->exec('DELETE FROM a_sessions');
@@ -51,7 +51,7 @@ final class HttpEndpointTest extends TestCase
             new PollRepository(self::$database),
             new AnswerRepository(self::$database),
             new PasswordService(),
-            new Logger()
+            new Logger('', 'php://memory')
         ))->seed();
 
         self::startServer([
@@ -81,12 +81,15 @@ final class HttpEndpointTest extends TestCase
         }
     }
 
-    public function test_health_responde_saludable(): void
+    public function test_las_sondas_de_salud_responden_saludable(): void
     {
-        $response = $this->request('GET', '/health');
+        foreach (['/health/live', '/health/ready'] as $path) {
+            $response = $this->request('GET', $path);
 
-        $this->assertSame(200, $response['status']);
-        $this->assertSame('Healthy', $response['body']);
+            $this->assertSame(200, $response['status'], $path);
+            $this->assertSame('Healthy', $response['body'], $path);
+            $this->assertMatchesRegularExpression('/^[0-9a-f]{16}$/', $response['headers']['x-request-id'] ?? '');
+        }
     }
 
     public function test_ruta_protegida_sin_sesion_redirige_al_login(): void
@@ -174,7 +177,7 @@ final class HttpEndpointTest extends TestCase
 
         // Espera a que el servidor acepte peticiones.
         for ($attempt = 0; $attempt < 50; $attempt++) {
-            $probe = @file_get_contents(self::$baseUrl . '/health');
+            $probe = @file_get_contents(self::$baseUrl . '/health/live');
             if ($probe === 'Healthy') {
                 return;
             }

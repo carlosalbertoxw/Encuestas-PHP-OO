@@ -23,7 +23,7 @@ $registerEmail = $registerEmail ?? '';
                     <?= Csrf::field() ?>
                     <div class="mb-3">
                         <label class="form-label" for="LoginEmail">Correo electrónico</label>
-                        <input class="form-control" type="email" id="LoginEmail" name="Email" maxlength="50" required
+                        <input class="form-control" type="email" id="LoginEmail" name="Email" maxlength="254" required
                                autocomplete="username" value="<?= e($loginEmail) ?>">
                         <span class="text-danger small"><?= e($loginErrors['Email'] ?? '') ?></span>
                     </div>
@@ -49,7 +49,7 @@ $registerEmail = $registerEmail ?? '';
                     <?= Csrf::field() ?>
                     <div class="mb-3">
                         <label class="form-label" for="RegisterEmail">Correo electrónico</label>
-                        <input class="form-control" type="email" id="RegisterEmail" name="Email" maxlength="50" required
+                        <input class="form-control" type="email" id="RegisterEmail" name="Email" maxlength="254" required
                                autocomplete="email" value="<?= e($registerEmail) ?>">
                         <span class="text-danger small"><?= e($registerErrors['Email'] ?? '') ?></span>
                     </div>

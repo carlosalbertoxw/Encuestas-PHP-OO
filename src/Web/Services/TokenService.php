@@ -6,14 +6,15 @@ namespace Encuestas\Web\Services;
 
 /**
  * Genera y valida tokens firmados (HMAC-SHA256) y con caducidad para confirmar
- * el correo y restablecer la contraseña. Son *stateless*: no se guardan en la
- * BD. El token de restablecimiento incluye el sello de seguridad del usuario,
+ * el correo, confirmar un cambio de correo y restablecer la contraseña. Son
+ * *stateless*: no se guardan en la BD. El token de restablecimiento incluye el sello de seguridad del usuario,
  * así que se invalida en cuanto la contraseña cambia (uso único).
  */
 class TokenService
 {
     private const CONFIRM_PURPOSE = 'confirm';
     private const RESET_PURPOSE = 'reset';
+    private const CHANGE_EMAIL_PURPOSE = 'change-email';
     private const CONFIRM_LIFETIME_SECONDS = 24 * 3600;
     private const RESET_LIFETIME_SECONDS = 3600;
 
@@ -42,6 +43,24 @@ class TokenService
     {
         $parts = $this->unsign($token, self::RESET_PURPOSE, 2);
         return $parts === null ? null : ['userId' => (int) $parts[0], 'securityStamp' => $parts[1]];
+    }
+
+    /** Token para confirmar el cambio a $newEmail; se envía a esa dirección. */
+    public function createEmailChangeToken(int $userId, string $newEmail): string
+    {
+        // El correo va en Base64 para que un ':' en la dirección no rompa el formato.
+        return $this->sign(
+            [self::CHANGE_EMAIL_PURPOSE, (string) $userId, self::base64UrlEncode($newEmail)],
+            self::CONFIRM_LIFETIME_SECONDS
+        );
+    }
+
+    /** @return array{userId: int, email: string}|null */
+    public function validateEmailChangeToken(string $token): ?array
+    {
+        $parts = $this->unsign($token, self::CHANGE_EMAIL_PURPOSE, 2);
+        $email = $parts === null ? null : self::base64UrlDecode($parts[1]);
+        return $parts === null || $email === null ? null : ['userId' => (int) $parts[0], 'email' => $email];
     }
 
     /** @param list<string> $fields */

@@ -11,6 +11,8 @@ namespace Encuestas\Data;
  */
 final class PagedResult
 {
+    public const DEFAULT_PAGE_SIZE = 10;
+
     /** @param list<T> $items */
     public function __construct(
         public readonly array $items,
@@ -33,5 +35,15 @@ final class PagedResult
     public function hasNext(): bool
     {
         return $this->page < $this->totalPages();
+    }
+
+    /**
+     * Corrige valores fuera de rango que lleguen desde la URL.
+     *
+     * @return array{int, int}
+     */
+    public static function normalize(int $page, int $pageSize): array
+    {
+        return [max(1, $page), $pageSize < 1 ? self::DEFAULT_PAGE_SIZE : $pageSize];
     }
 }

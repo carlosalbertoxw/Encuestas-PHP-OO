@@ -34,12 +34,12 @@ use Encuestas\Web\Csrf;
                             <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">Usuario</a>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li><a class="dropdown-item" href="/User/Index?profile=<?= e(urlencode($auth->userName())) ?>">Ver perfil</a></li>
-                                <li><a class="dropdown-item" href="/User/EditProfile">Editar perfil</a></li>
-                                <li><a class="dropdown-item" href="/User/ChangeUser">Cambiar usuario</a></li>
-                                <li><a class="dropdown-item" href="/User/ChangeEmail">Cambiar correo electrónico</a></li>
-                                <li><a class="dropdown-item" href="/User/ChangePassword">Cambiar contraseña</a></li>
+                                <li><a class="dropdown-item" href="/Account/EditProfile">Editar perfil</a></li>
+                                <li><a class="dropdown-item" href="/Account/ChangeUser">Cambiar usuario</a></li>
+                                <li><a class="dropdown-item" href="/Account/ChangeEmail">Cambiar correo electrónico</a></li>
+                                <li><a class="dropdown-item" href="/Account/ChangePassword">Cambiar contraseña</a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="/User/DeleteAccount">Borrar cuenta</a></li>
+                                <li><a class="dropdown-item" href="/Account/DeleteAccount">Borrar cuenta</a></li>
                                 <li>
                                     <form action="/User/CloseSession" method="post">
                                         <?= Csrf::field() ?>

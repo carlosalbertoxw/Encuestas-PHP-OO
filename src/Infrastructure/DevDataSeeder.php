@@ -65,7 +65,7 @@ final class DevDataSeeder
         $this->users->updateUserName($ana->user->id, 'ana');
         $this->users->updateName($ana->user->id, 'Ana');
 
-        $demoPolls = $this->polls->getPolls($demo->user->id);
+        $demoPolls = $this->polls->getPolls($demo->user->id, 1)->items;
         if ($demoPolls !== []) {
             $answer = new Answer();
             $answer->stars = 5;

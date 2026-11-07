@@ -13,6 +13,9 @@ final class User
     /** Indica si el usuario confirmó su correo mediante el enlace enviado al registrarse. */
     public bool $emailConfirmed = false;
 
+    /** Correo nuevo pendiente de confirmar; se aplica al abrir el enlace enviado a esa dirección. */
+    public ?string $pendingEmail = null;
+
     /** Hash de la contraseña (password_hash de PHP, bcrypt/argon2 según PASSWORD_DEFAULT). */
     public string $passwordHash = '';
 

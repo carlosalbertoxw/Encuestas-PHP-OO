@@ -11,6 +11,9 @@ namespace Encuestas\Web;
  */
 final class Validator
 {
+    /** Longitud máxima de una dirección de correo válida. */
+    public const EMAIL_MAX = 254;
+
     /** @var array<string, string> */
     private array $errors = [];
 

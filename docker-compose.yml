@@ -25,7 +25,7 @@ services:
 
   # Servidor SMTP de pruebas: captura todos los correos y los muestra en http://localhost:8026.
   mailpit:
-    image: axllent/mailpit:v1.33
+    image: axllent/mailpit:v1.34
     container_name: encuestas-php-mailpit
     restart: unless-stopped
     ports:

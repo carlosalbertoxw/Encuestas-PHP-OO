@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Encuestas\Tests;
 
 use Encuestas\Web\Services\AccountLockout;
-use Encuestas\Web\Services\InMemoryAttemptCounterStore;
 use Encuestas\Web\Services\RateLimiter;
 use PHPUnit\Framework\TestCase;
 
@@ -60,9 +59,9 @@ final class AccountLockoutTest extends TestCase
 
     public function test_el_rate_limiter_rechaza_al_superar_el_limite(): void
     {
-        $limiter = new RateLimiter(new InMemoryAttemptCounterStore());
+        $limiter = new RateLimiter(new InMemoryAttemptCounterStore(), 'auth', 10, 60);
 
-        for ($i = 0; $i < RateLimiter::PERMIT_LIMIT; $i++) {
+        for ($i = 0; $i < 10; $i++) {
             $this->assertFalse($limiter->isRejected('10.0.0.1'));
         }
 

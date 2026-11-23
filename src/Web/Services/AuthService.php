@@ -49,9 +49,12 @@ class AuthService
         }
 
         $profile = $this->users->getProfileByEmail($email);
-        $outcome = $profile === null
-            ? PasswordVerificationOutcome::Failed
-            : $this->passwords->verify($profile->user->passwordHash, $password);
+        if ($profile === null) {
+            $this->passwords->verifyAgainstDummy($password);
+            $outcome = PasswordVerificationOutcome::Failed;
+        } else {
+            $outcome = $this->passwords->verify($profile->user->passwordHash, $password);
+        }
 
         if ($profile === null || $outcome === PasswordVerificationOutcome::Failed) {
             $this->lockout->recordFailure($email);
@@ -98,11 +101,7 @@ class AuthService
     /** Recarga los datos de sesión tras editar perfil, usuario, correo o contraseña. */
     public function refreshClaims(int $userId): void
     {
-        $user = $this->users->getUser($userId);
-        if ($user === null) {
-            return;
-        }
-        $profile = $this->users->getProfileByEmail($user->email);
+        $profile = $this->users->getProfileById($userId);
         if ($profile !== null) {
             $this->signIn($profile);
         }

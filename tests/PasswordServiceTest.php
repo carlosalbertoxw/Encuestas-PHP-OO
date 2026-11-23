@@ -45,6 +45,13 @@ final class PasswordServiceTest extends TestCase
         $this->assertSame(PasswordVerificationOutcome::SuccessRehashNeeded, $this->service->verify($legacyHash, 'secreta123'));
     }
 
+    public function test_la_verificacion_ficticia_no_falla(): void
+    {
+        $this->service->verifyAgainstDummy('cualquiera');
+        $this->service->verifyAgainstDummy('');
+        $this->addToAssertionCount(1);
+    }
+
     public function test_cada_hash_lleva_sal_distinta(): void
     {
         $this->assertNotSame($this->service->hash('secreta123'), $this->service->hash('secreta123'));

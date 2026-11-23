@@ -20,6 +20,16 @@ final class Config
         return ($value === false || $value === '') ? $default : (string) $value;
     }
 
+    /** Entero positivo de la configuración; un valor no válido detiene la petición con un mensaje claro. */
+    public static function positiveInt(string $name, int $default): int
+    {
+        $value = self::get($name, (string) $default);
+        if (preg_match('/^[1-9][0-9]*$/', $value) !== 1) {
+            throw new \RuntimeException("{$name} debe ser un entero positivo: {$value}");
+        }
+        return (int) $value;
+    }
+
     public static function environment(): string
     {
         return self::get('APP_ENV', 'production');

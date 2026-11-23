@@ -44,12 +44,14 @@ final class PollController extends Controller
 
     public function addPost(): void
     {
-        $poll = $this->pollFromForm();
-        if ($poll === null) {
-            Flash::set(Messages::VALIDATION_ERROR);
-        } else {
-            Flash::set($this->polls->addPoll($poll) ? Messages::POLL_SAVED : Messages::POLL_SAVE_ERROR);
+        [$poll, $errors] = $this->pollFromForm();
+        if ($errors !== []) {
+            // Se vuelve a mostrar el formulario con lo escrito y el error de cada campo.
+            $data = ['poll' => $poll, 'errors' => $errors];
+            $this->view->render('poll/form', 'Agregar encuesta', $data, Messages::VALIDATION_ERROR);
+            return;
         }
+        Flash::set($this->polls->addPoll($poll) ? Messages::POLL_SAVED : Messages::POLL_SAVE_ERROR);
         $this->redirect('/Poll/Index');
     }
 
@@ -64,12 +66,16 @@ final class PollController extends Controller
 
     public function update(): void
     {
-        $poll = $this->pollFromForm();
-        if ($poll === null || $poll->id < 1) {
-            Flash::set(Messages::VALIDATION_ERROR);
-        } else {
-            Flash::set($this->polls->updatePoll($poll) ? Messages::POLL_UPDATED : Messages::UPDATE_ERROR);
+        [$poll, $errors] = $this->pollFromForm();
+        if ($poll->id < 1) {
+            throw new NotFoundException('Poll/Update');
         }
+        if ($errors !== []) {
+            $data = ['poll' => $poll, 'errors' => $errors];
+            $this->view->render('poll/form', 'Editar encuesta', $data, Messages::VALIDATION_ERROR);
+            return;
+        }
+        Flash::set($this->polls->updatePoll($poll) ? Messages::POLL_UPDATED : Messages::UPDATE_ERROR);
         $this->redirect('/Poll/Index');
     }
 
@@ -86,27 +92,24 @@ final class PollController extends Controller
         $this->redirect('/Poll/Index');
     }
 
-    /** Valida el formulario y construye la encuesta del usuario actual, o null si es inválido. */
-    private function pollFromForm(): ?Poll
+    /**
+     * Construye la encuesta del usuario actual con lo enviado y la valida.
+     *
+     * @return array{0: Poll, 1: array<string, string>} la encuesta y los errores por campo (vacío si es válida)
+     */
+    private function pollFromForm(): array
     {
-        $title = $this->input('Title');
-        $description = $this->input('Description');
-        $position = (int) $this->input('Position');
-
-        $validator = (new Validator())
-            ->required('Title', $title)->length('Title', $title, 0, 250)
-            ->required('Description', $description)->length('Description', $description, 0, 500)
-            ->range('Position', $position, 1, 999999);
-        if (!$validator->isValid()) {
-            return null;
-        }
-
         $poll = new Poll();
         $poll->id = (int) $this->input('Id');
-        $poll->title = $title;
-        $poll->description = $description;
-        $poll->position = $position;
+        $poll->title = $this->input('Title');
+        $poll->description = $this->input('Description');
+        $poll->position = (int) $this->input('Position');
         $poll->userId = $this->auth->userId();
-        return $poll;
+
+        $validator = (new Validator())
+            ->required('Title', $poll->title)->length('Title', $poll->title, 0, 250)
+            ->required('Description', $poll->description)->length('Description', $poll->description, 0, 500)
+            ->range('Position', $poll->position, 1, 999999);
+        return [$poll, $validator->errors()];
     }
 }

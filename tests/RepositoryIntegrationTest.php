@@ -6,6 +6,7 @@ namespace Encuestas\Tests;
 
 use Encuestas\Data\AnswerRepository;
 use Encuestas\Data\Database;
+use Encuestas\Data\EmailOutbox;
 use Encuestas\Data\PollRepository;
 use Encuestas\Data\RepositoryResult;
 use Encuestas\Data\UserRepository;
@@ -14,6 +15,7 @@ use Encuestas\Infrastructure\MigrationRunner;
 use Encuestas\Model\Answer;
 use Encuestas\Model\Poll;
 use Encuestas\Model\UserProfile;
+use Encuestas\Web\Services\EmailSender;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -49,6 +51,54 @@ final class RepositoryIntegrationTest extends TestCase
         // Limpia los datos entre pruebas (el esquema borra en cascada).
         $this->db()->connection()->exec('DELETE FROM a_users');
         $this->db()->connection()->exec('DELETE FROM a_attempt_counters');
+        $this->db()->connection()->exec('DELETE FROM a_outbox');
+    }
+
+    public function test_la_bandeja_de_salida_envia_y_borra_los_correos(): void
+    {
+        $outbox = new EmailOutbox($this->db());
+        $outbox->enqueue('ok@encuestas.dev', 'Asunto', '<p>Hola</p>');
+        $sender = new class implements EmailSender {
+            /** @var list<string> */
+            public array $sent = [];
+
+            public function send(string $recipient, string $subject, string $htmlBody): void
+            {
+                $this->sent[] = $recipient;
+            }
+        };
+
+        $this->assertSame(1, $outbox->dispatchBatch($sender, new Logger('', 'php://memory')));
+        $this->assertSame(['ok@encuestas.dev'], $sender->sent);
+        $count = $this->db()->connection()->query('SELECT COUNT(*) FROM a_outbox');
+        $this->assertNotFalse($count);
+        $this->assertSame(0, (int) $count->fetchColumn());
+    }
+
+    public function test_la_bandeja_de_salida_reprograma_un_envio_fallido(): void
+    {
+        $outbox = new EmailOutbox($this->db());
+        $outbox->enqueue('falla@encuestas.dev', 'Asunto', '<p>Hola</p>');
+        $failing = new class implements EmailSender {
+            public function send(string $recipient, string $subject, string $htmlBody): void
+            {
+                throw new \RuntimeException('SMTP no disponible');
+            }
+        };
+
+        $outbox->dispatchBatch($failing, new Logger('', 'php://memory'));
+
+        $statement = $this->db()->connection()
+            ->query('SELECT o_attempts, o_next_attempt_at > UTC_TIMESTAMP() AS scheduled FROM a_outbox');
+        $this->assertNotFalse($statement);
+        $row = $statement->fetch();
+        $this->assertIsArray($row);
+        $this->assertSame(1, (int) $row['o_attempts']);
+        $this->assertSame(1, (int) $row['scheduled']);
+        // Reprogramado para más tarde: el siguiente lote no lo vuelve a intentar enseguida.
+        $this->assertSame(0, $outbox->dispatchBatch($failing, new Logger('', 'php://memory')));
+        $this->assertSame(30, EmailOutbox::backoffSeconds(1));
+        $this->assertSame(3600, EmailOutbox::backoffSeconds(20));
     }
 
     public function test_crear_usuario_genera_cuenta_y_perfil(): void

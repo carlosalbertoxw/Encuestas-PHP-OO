@@ -4,36 +4,76 @@ declare(strict_types=1);
 
 namespace Encuestas\Web\Services;
 
+use Encuestas\Config;
 use RuntimeException;
 
 /**
  * Cliente SMTP mínimo, sin dependencias: envía un mensaje HTML por conexión, con
- * STARTTLS y AUTH LOGIN opcionales. En local se usa con Mailpit; en producción, con
- * cualquier servidor SMTP con STARTTLS.
+ * cifrado STARTTLS, TLS implícito (puerto 465) o ninguno (solo servidores locales
+ * como Mailpit), TLS 1.2 o 1.3 con verificación del certificado, y AUTH LOGIN
+ * opcional.
  */
 final class SmtpEmailSender implements EmailSender
 {
+    public const ENCRYPTION_STARTTLS = 'starttls';
+    public const ENCRYPTION_TLS = 'tls';
+    public const ENCRYPTION_NONE = 'none';
+
     private const TIMEOUT_SECONDS = 10;
+    private const CRYPTO_METHOD = STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT | STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT;
 
     public function __construct(
         private readonly string $host,
         private readonly int $port,
-        private readonly bool $startTls,
+        private readonly string $encryption,
         private readonly string $user,
         private readonly string $password,
         private readonly string $from,
     ) {
+        if (!in_array($encryption, [self::ENCRYPTION_STARTTLS, self::ENCRYPTION_TLS, self::ENCRYPTION_NONE], true)) {
+            throw new RuntimeException('SMTP_ENCRYPTION debe ser starttls, tls o none.');
+        }
+    }
+
+    /**
+     * Configuración desde el entorno. SMTP_HOST es obligatorio en todos los entornos
+     * (en local, Mailpit): los correos llevan enlaces con tokens y nunca se escriben
+     * en el log.
+     */
+    public static function fromEnvironment(): self
+    {
+        $host = Config::get('SMTP_HOST');
+        if ($host === '') {
+            throw new RuntimeException('Falta SMTP_HOST para enviar los correos (en local, el Mailpit de docker-compose).');
+        }
+        return new self(
+            $host,
+            (int) Config::get('SMTP_PORT', '587'),
+            strtolower(Config::get('SMTP_ENCRYPTION', self::ENCRYPTION_STARTTLS)),
+            Config::get('SMTP_USER'),
+            Config::get('SMTP_PASSWORD'),
+            Config::get('SMTP_FROM', 'Encuestas <no-reply@encuestas.local>'),
+        );
     }
 
     public function send(string $recipient, string $subject, string $htmlBody): void
     {
         $errorCode = 0;
         $errorMessage = '';
+        // El certificado se valida contra el nombre del servidor, también tras STARTTLS.
+        $context = stream_context_create(['ssl' => [
+            'peer_name' => $this->host,
+            'verify_peer' => true,
+            'verify_peer_name' => true,
+            'SNI_enabled' => true,
+        ]]);
         $socket = @stream_socket_client(
             "tcp://{$this->host}:{$this->port}",
             $errorCode,
             $errorMessage,
-            self::TIMEOUT_SECONDS
+            self::TIMEOUT_SECONDS,
+            STREAM_CLIENT_CONNECT,
+            $context
         );
         if ($socket === false) {
             throw new RuntimeException("No se pudo conectar al servidor SMTP: {$errorMessage}");
@@ -41,13 +81,14 @@ final class SmtpEmailSender implements EmailSender
         stream_set_timeout($socket, self::TIMEOUT_SECONDS);
 
         try {
+            if ($this->encryption === self::ENCRYPTION_TLS) {
+                $this->enableTls($socket);
+            }
             $this->expect($socket, 220);
             $this->command($socket, 'EHLO encuestas', 250);
-            if ($this->startTls) {
+            if ($this->encryption === self::ENCRYPTION_STARTTLS) {
                 $this->command($socket, 'STARTTLS', 220);
-                if (stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT) !== true) {
-                    throw new RuntimeException('No se pudo negociar TLS con el servidor SMTP');
-                }
+                $this->enableTls($socket);
                 $this->command($socket, 'EHLO encuestas', 250);
             }
             if ($this->user !== '') {
@@ -63,6 +104,14 @@ final class SmtpEmailSender implements EmailSender
             $this->command($socket, 'QUIT', 221);
         } finally {
             fclose($socket);
+        }
+    }
+
+    /** @param resource $socket */
+    private function enableTls($socket): void
+    {
+        if (stream_socket_enable_crypto($socket, true, self::CRYPTO_METHOD) !== true) {
+            throw new RuntimeException('No se pudo negociar TLS con el servidor SMTP');
         }
     }
 

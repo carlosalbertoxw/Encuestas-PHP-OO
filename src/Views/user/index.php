@@ -37,6 +37,9 @@ $registerEmail = $registerEmail ?? '';
                     <div class="text-center mt-2">
                         <a href="/User/ForgotPassword">¿Olvidaste tu contraseña?</a>
                     </div>
+                    <div class="text-center mt-1">
+                        <a href="/User/ResendConfirmation">¿No recibiste el correo de confirmación?</a>
+                    </div>
                 </form>
             </div>
         </div>

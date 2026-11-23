@@ -5,26 +5,27 @@ declare(strict_types=1);
 namespace Encuestas\Web\Services;
 
 /**
- * Rate limiting de ventana fija por IP (10 peticiones por minuto) para
- * login/registro/recuperación, para frenar fuerza bruta y registro masivo.
+ * Límite de peticiones de ventana fija por clave (una IP, un usuario…), con los
+ * contadores en MySQL para que se compartan entre procesos y réplicas.
  */
 class RateLimiter
 {
-    public const PERMIT_LIMIT = 10;
-    public const WINDOW_SECONDS = 60;
-
-    public function __construct(private readonly AttemptCounterStore $store)
-    {
+    public function __construct(
+        private readonly AttemptCounterStore $store,
+        private readonly string $prefix,
+        private readonly int $permitLimit,
+        private readonly int $windowSeconds,
+    ) {
     }
 
-    /** Registra la petición y devuelve true si el cliente superó el límite. */
-    public function isRejected(string $clientIp): bool
+    /** Registra la petición y devuelve true si la clave superó el límite. */
+    public function isRejected(string $key): bool
     {
-        $key = 'auth:' . ($clientIp === '' ? 'desconocido' : $clientIp);
-        if ($this->store->count($key, self::WINDOW_SECONDS) >= self::PERMIT_LIMIT) {
+        $fullKey = $this->prefix . ':' . ($key === '' ? 'desconocido' : $key);
+        if ($this->store->count($fullKey, $this->windowSeconds) >= $this->permitLimit) {
             return true;
         }
-        $this->store->increment($key, self::WINDOW_SECONDS);
+        $this->store->increment($fullKey, $this->windowSeconds);
         return false;
     }
 }

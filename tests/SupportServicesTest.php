@@ -7,6 +7,7 @@ namespace Encuestas\Tests;
 use Encuestas\Config;
 use Encuestas\Infrastructure\Logger;
 use Encuestas\Web\Services\LogRedaction;
+use Encuestas\Web\Services\SmtpEmailSender;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -16,6 +17,19 @@ final class SupportServicesTest extends TestCase
     {
         putenv('APP_BASE_URL');
         putenv('APP_ENV');
+    }
+
+    public function test_el_cifrado_smtp_debe_ser_un_modo_conocido(): void
+    {
+        $this->expectException(RuntimeException::class);
+        new SmtpEmailSender('smtp.example.com', 587, 'ssl3', '', '', 'Encuestas <no-reply@example.com>');
+    }
+
+    public function test_sin_smtp_host_el_emisor_no_se_construye(): void
+    {
+        putenv('SMTP_HOST');
+        $this->expectException(RuntimeException::class);
+        SmtpEmailSender::fromEnvironment();
     }
 
     public function test_enmascara_el_correo_en_los_logs(): void

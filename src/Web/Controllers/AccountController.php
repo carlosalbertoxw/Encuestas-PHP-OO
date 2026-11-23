@@ -4,19 +4,14 @@ declare(strict_types=1);
 
 namespace Encuestas\Web\Controllers;
 
-use Encuestas\Config;
 use Encuestas\Data\RepositoryResult;
 use Encuestas\Data\UserRepository;
-use Encuestas\Infrastructure\Logger;
 use Encuestas\Web\Flash;
 use Encuestas\Web\RequestContext;
+use Encuestas\Web\Services\AccountService;
 use Encuestas\Web\Services\AuthService;
-use Encuestas\Web\Services\EmailSender;
-use Encuestas\Web\Services\EmailTemplates;
 use Encuestas\Web\Services\Messages;
-use Encuestas\Web\Services\PasswordService;
-use Encuestas\Web\Services\PasswordVerificationOutcome;
-use Encuestas\Web\Services\TokenService;
+use Encuestas\Web\Services\RateLimiter;
 use Encuestas\Web\Validator;
 use Encuestas\Web\View;
 
@@ -28,10 +23,8 @@ final class AccountController extends Controller
         AuthService $auth,
         RequestContext $request,
         private readonly UserRepository $users,
-        private readonly PasswordService $passwords,
-        private readonly TokenService $tokens,
-        private readonly EmailSender $email,
-        private readonly Logger $logger,
+        private readonly AccountService $accounts,
+        private readonly RateLimiter $emailChangeLimiter,
     ) {
         parent::__construct($view, $auth, $request);
     }
@@ -78,7 +71,7 @@ final class AccountController extends Controller
             return;
         }
 
-        if (!$this->verifyCurrentPassword($password)) {
+        if (!$this->accounts->verifyPassword($this->auth->userId(), $password)) {
             $this->view->render('account/change_user', 'Cambiar usuario', ['userName' => $userName], Messages::WRONG_PASSWORD);
             return;
         }
@@ -98,11 +91,16 @@ final class AccountController extends Controller
 
     /**
      * Solicita el cambio de correo: el nuevo queda pendiente y solo se aplica
-     * cuando se abre el enlace enviado a esa dirección. Se avisa además al
-     * correo actual.
+     * cuando se abre el enlace enviado a esa dirección. Limitado por usuario,
+     * porque cada solicitud envía correos.
      */
     public function changeEmailPost(): void
     {
+        if ($this->emailChangeLimiter->isRejected((string) $this->auth->userId())) {
+            $this->tooManyRequests();
+            return;
+        }
+
         $email = $this->input('Email');
         $password = $this->input('Password');
 
@@ -114,7 +112,7 @@ final class AccountController extends Controller
             return;
         }
 
-        if (!$this->verifyCurrentPassword($password)) {
+        if (!$this->accounts->verifyPassword($this->auth->userId(), $password)) {
             $this->view->render('account/change_email', 'Cambiar correo', ['email' => $email], Messages::WRONG_PASSWORD);
             return;
         }
@@ -125,28 +123,7 @@ final class AccountController extends Controller
             return;
         }
 
-        $userId = $this->auth->userId();
-        if ($this->users->getProfileByEmail($email) !== null) {
-            // No se revela en pantalla que el correo tiene cuenta: solo lo sabe quien controla ese buzón.
-            $this->email->send($email, 'Intento de usar tu correo', EmailTemplates::text(
-                'Alguien intentó cambiar el correo de otra cuenta de Encuestas a esta dirección, pero ya tienes '
-                . 'una cuenta con ella. No es necesario que hagas nada.'
-            ));
-        } elseif ($this->users->setPendingEmail($userId, $email) === RepositoryResult::Success) {
-            $token = $this->tokens->createEmailChangeToken($userId, $email);
-            $link = Config::absoluteUrl('/Account/ConfirmEmailChange?token=' . urlencode($token));
-            $this->email->send(
-                $email,
-                'Confirma tu nuevo correo',
-                EmailTemplates::link('Para usar esta dirección en tu cuenta de Encuestas visita:', $link)
-            );
-            $this->email->send($currentEmail, 'Solicitud de cambio de correo', EmailTemplates::text(
-                'Se solicitó cambiar el correo de tu cuenta de Encuestas. Si no fuiste tú, cambia tu contraseña: '
-                . 'el cambio no se aplicará mientras nadie abra el enlace enviado al correo nuevo.'
-            ));
-            $this->logger->info('Cambio de correo solicitado', ['userId' => $userId]);
-        }
-
+        $this->accounts->requestEmailChange($this->auth->userId(), $currentEmail, $email);
         $this->view->render(
             'account/change_email',
             'Cambiar correo',
@@ -162,16 +139,9 @@ final class AccountController extends Controller
     public function confirmEmailChange(): void
     {
         $token = $this->query('token');
-        $change = $token === null ? null : $this->tokens->validateEmailChangeToken($token);
-        $result = $change === null
-            ? RepositoryResult::NotFound
-            : $this->users->confirmEmailChange($change['userId'], $change['email'], AuthService::newSecurityStamp());
-
-        if ($change !== null && $result === RepositoryResult::Success) {
-            if ($this->auth->isAuthenticated()) {
-                $this->auth->signOut();
-            }
-            $this->logger->info('Correo actualizado', ['userId' => $change['userId']]);
+        $result = $token === null ? RepositoryResult::NotFound : $this->accounts->confirmEmailChange($token);
+        if ($result === RepositoryResult::Success && $this->auth->isAuthenticated()) {
+            $this->auth->signOut();
         }
 
         Flash::set(match ($result) {
@@ -202,22 +172,17 @@ final class AccountController extends Controller
             return;
         }
 
-        if (!$this->verifyCurrentPassword($password)) {
+        $userId = $this->auth->userId();
+        if (!$this->accounts->verifyPassword($userId, $password)) {
             $this->view->render('account/change_password', 'Cambiar contraseña', [], Messages::WRONG_PASSWORD);
             return;
         }
 
-        // Rota el sello de seguridad para cerrar otras sesiones; luego recarga la
-        // sesión actual con el sello nuevo para no expulsar al propio usuario.
-        $userId = $this->auth->userId();
-        $result = $this->users->changePassword($userId, $this->passwords->hash($newPassword), AuthService::newSecurityStamp());
-        if ($result === RepositoryResult::Success) {
-            $this->auth->refreshClaims($userId);
-            $this->logger->info('Contraseña cambiada', ['userId' => $userId]);
-            $this->view->render('account/change_password', 'Cambiar contraseña', [], Messages::UPDATE_OK);
-        } else {
-            $this->view->render('account/change_password', 'Cambiar contraseña', [], Messages::UPDATE_ERROR);
-        }
+        // El sello rota y cierra las otras sesiones; la actual se recarga con el sello nuevo.
+        $message = $this->accounts->changePassword($userId, $newPassword)
+            ? $this->refreshClaims()
+            : Messages::UPDATE_ERROR;
+        $this->view->render('account/change_password', 'Cambiar contraseña', [], $message);
     }
 
     public function deleteAccount(): void
@@ -234,28 +199,20 @@ final class AccountController extends Controller
             return;
         }
 
-        if (!$this->verifyCurrentPassword($password)) {
+        $userId = $this->auth->userId();
+        if (!$this->accounts->verifyPassword($userId, $password)) {
             $this->view->render('account/delete_account', 'Borrar cuenta', [], Messages::WRONG_PASSWORD);
             return;
         }
 
-        $userId = $this->auth->userId();
-        if ($this->users->deleteAccount($userId) === RepositoryResult::Success) {
+        if ($this->accounts->deleteAccount($userId)) {
             $this->auth->signOut();
-            $this->logger->info('Cuenta eliminada', ['userId' => $userId]);
             Flash::set(Messages::ACCOUNT_DELETED);
             $this->redirect('/User/Index');
             return;
         }
 
         $this->view->render('account/delete_account', 'Borrar cuenta', [], Messages::ACCOUNT_DELETE_ERROR);
-    }
-
-    private function verifyCurrentPassword(string $password): bool
-    {
-        $user = $this->users->getUser($this->auth->userId());
-        return $user !== null
-            && $this->passwords->verify($user->passwordHash, $password) !== PasswordVerificationOutcome::Failed;
     }
 
     private function refreshClaims(): string

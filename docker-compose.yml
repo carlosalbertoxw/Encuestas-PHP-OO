@@ -1,4 +1,4 @@
-# Aplicación web + MySQL 8.4 + Mailpit, con contenedores y volumen propios. Los
+# Aplicación web + despachador de correos + MySQL 8.4 + Mailpit, con contenedores y volumen propios. Los
 # puertos del host (BD en 3307 y web en 8081 por defecto) evitan choques con
 # otros servicios locales y se personalizan vía .env.
 services:
@@ -12,7 +12,7 @@ services:
       MYSQL_USER: ${MYSQL_USER:-encuestas}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-encuestas}
     ports:
-      - "${MYSQL_PORT:-3307}:3306"
+      - "127.0.0.1:${MYSQL_PORT:-3307}:3306"
     # El esquema lo aplican las migraciones al arrancar la aplicación
     # (migrations/); el contenedor solo crea la base vacía.
     volumes:
@@ -29,8 +29,8 @@ services:
     container_name: encuestas-php-mailpit
     restart: unless-stopped
     ports:
-      - "${MAILPIT_SMTP_PORT:-1026}:1025"
-      - "${MAILPIT_UI_PORT:-8026}:8025"
+      - "127.0.0.1:${MAILPIT_SMTP_PORT:-1026}:1025"
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8026}:8025"
 
   web:
     build:
@@ -41,9 +41,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      mailpit:
-        condition: service_started
-    environment:
+    environment: &app-environment
       # La app se conecta al contenedor de MySQL por el nombre del servicio (db).
       DB_HOST: db
       DB_PORT: "3306"
@@ -55,15 +53,35 @@ services:
       APP_KEY: ${APP_KEY:?Define APP_KEY en .env, por ejemplo con openssl rand -hex 32}
       # URL pública con la que se construyen los enlaces de los correos.
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8081}
-      SMTP_HOST: mailpit
-      SMTP_PORT: "1025"
-      SMTP_STARTTLS: "false"
       # Proxies inversos de confianza y redirección a HTTPS (ver .env.example).
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
       FORCE_HTTPS: ${FORCE_HTTPS:-false}
     ports:
       - "${WEB_PORT:-8081}:8080"
     # El HEALTHCHECK de la imagen consulta /health/live; /health/ready comprueba además la BD.
+
+  # Despachador de la bandeja de salida: misma imagen que web, pero ejecuta
+  # bin/outbox-worker.php, que envía por SMTP los correos que encolan las peticiones.
+  mailer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: encuestas-php-mailer
+    restart: unless-stopped
+    entrypoint: ["php", "bin/outbox-worker.php"]
+    # Sin servidor web, no aplica la sonda HTTP de la imagen.
+    healthcheck:
+      disable: true
+    depends_on:
+      web:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    environment:
+      <<: *app-environment
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_ENCRYPTION: none
 
 volumes:
   db-data:

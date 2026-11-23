@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Encuestas\Web\Services;
+namespace Encuestas\Tests;
+
+use Encuestas\Web\Services\AttemptCounterStore;
 
 /** Almacén en memoria para pruebas unitarias. */
 final class InMemoryAttemptCounterStore implements AttemptCounterStore

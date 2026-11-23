@@ -17,15 +17,18 @@ final class Messages
     // para no revelar qué correos tienen cuenta.
     public const REGISTER_ACKNOWLEDGED = 'Si los datos son válidos, te enviamos un correo para confirmar la cuenta.';
     public const USER_NAME_TAKEN = 'El nombre de usuario no está disponible';
-    public const EMAIL_NOT_CONFIRMED = 'Debes confirmar tu correo antes de iniciar sesión. Revisa tu bandeja de entrada.';
+    public const EMAIL_NOT_CONFIRMED = 'Debes confirmar tu correo antes de iniciar sesión. '
+        . 'Revisa tu bandeja de entrada o pide un enlace nuevo.';
     public const ACCOUNT_LOCKED = 'Demasiados intentos fallidos. Intenta de nuevo en unos minutos.';
     public const EMAIL_CONFIRMED = 'Tu correo fue confirmado. Ya puedes iniciar sesión.';
-    public const EMAIL_CONFIRMATION_INVALID = 'El enlace de confirmación no es válido o expiró.';
+    public const EMAIL_CONFIRMATION_INVALID = 'El enlace de confirmación no es válido o expiró. Puedes pedir uno nuevo.';
+    public const CONFIRMATION_RESENT =
+        'Si el correo corresponde a una cuenta pendiente de confirmar, te enviamos un enlace nuevo.';
     public const PASSWORD_RESET_SENT =
         'Si el correo corresponde a una cuenta, te enviamos un enlace para restablecer la contraseña.';
     public const PASSWORD_RESET_OK = 'Tu contraseña se restableció. Ya puedes iniciar sesión.';
     public const PASSWORD_RESET_INVALID = 'El enlace para restablecer la contraseña no es válido o expiró.';
-    public const TOO_MANY_REQUESTS = 'Demasiados intentos. Espera un minuto y vuelve a intentarlo.';
+    public const TOO_MANY_REQUESTS = 'Demasiados intentos. Espera un momento y vuelve a intentarlo.';
 
     public const SAME_EMAIL = 'Ese ya es tu correo actual.';
     public const EMAIL_CHANGE_REQUESTED = 'Te enviamos un enlace al correo nuevo. El cambio se aplicará cuando lo abras; '

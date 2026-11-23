@@ -13,6 +13,9 @@ namespace Encuestas\Web\Services;
  */
 class PasswordService
 {
+    /** Hash de una contraseña aleatoria: verificarlo cuesta lo mismo que una cuenta real. */
+    private ?string $dummyHash = null;
+
     public function hash(string $password): string
     {
         return password_hash($password, PASSWORD_DEFAULT);
@@ -25,8 +28,19 @@ class PasswordService
         if (!password_verify($password, $storedHash)) {
             return PasswordVerificationOutcome::Failed;
         }
+
         return password_needs_rehash($storedHash, PASSWORD_DEFAULT)
             ? PasswordVerificationOutcome::SuccessRehashNeeded
             : PasswordVerificationOutcome::Success;
+    }
+
+    /**
+     * Hace el mismo trabajo que verify() cuando la cuenta no existe, para que el
+     * tiempo de respuesta no revele qué correos están registrados.
+     */
+    public function verifyAgainstDummy(string $password): void
+    {
+        $this->dummyHash ??= $this->hash(bin2hex(random_bytes(16)));
+        password_verify($password, $this->dummyHash);
     }
 }
